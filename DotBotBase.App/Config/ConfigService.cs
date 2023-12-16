@@ -36,14 +36,19 @@ public static class ConfigService
         _log.LogDebug($"Saved JSON config to {file}");
     }
 
-    public static T GetOrSetConfig<T>(string file) where T : ISettings, new()
+    public static T? GetOrSetConfig<T>(string file) where T : ISettings, new()
     {
         T? config = GetConfig<T>(file);
         
         if (config == null)
         {
-            T defaultConfig = new T();
-            defaultConfig.LoadDefaults();
+            T? defaultConfig = default;
+            _log.SafeInvoke($"Failed to setup new config for {file}", () =>
+            {
+                defaultConfig = new T();
+                defaultConfig.LoadDefaults();
+            });
+            
             SetConfig(defaultConfig, file);
             return defaultConfig;
         }

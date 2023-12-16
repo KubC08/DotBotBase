@@ -8,12 +8,15 @@ namespace DotBotBase.App;
 internal class DotBot : IDisposable
 {
     public const string Name = "DotBot";
+
+    public delegate void OnGuildReadyHandler(SocketGuild guild);
     
     public event Action? OnClientReady;
     public event Action? OnClientStop;
+    public event OnGuildReadyHandler? OnGuildReady;
 
     private readonly Logger _log = new Logger(null, Name);
-    private readonly DiscordSocketClient _client;
+    public readonly DiscordSocketClient Client;
     
     private readonly string _token;
     private readonly bool _autoReconnect;
@@ -22,20 +25,26 @@ internal class DotBot : IDisposable
     {
         _token = settings.Token ?? "";
         _autoReconnect = settings.AutoReconnect;
-        _client = new DiscordSocketClient();
+        Client = new DiscordSocketClient();
         
-        _client.Log += OnDiscordLog;
-        _client.Disconnected += OnDiscordDisconnect;
-        _client.Ready += OnDiscordReady;
+        Client.Log += OnDiscordLog;
+        Client.Disconnected += OnDiscordDisconnect;
+        Client.Ready += OnDiscordReady;
+        Client.JoinedGuild += OnDiscordGuildJoin;
     }
 
     public void Dispose() =>
-        _client.Dispose();
+        Client.Dispose();
+
+    public async Task AddCommand(SlashCommandProperties command) =>
+        await Client.Rest.CreateGlobalCommand(command);
+    public async Task AddCommand(SocketGuild guild, SlashCommandProperties command) =>
+        await Client.Rest.CreateGuildCommand(command, guild.Id);
 
     public async Task Run()
     {
-        await _client.LoginAsync(TokenType.Bot, _token);
-        await _client.StartAsync();
+        await Client.LoginAsync(TokenType.Bot, _token);
+        await Client.StartAsync();
     }
     
     private Task OnDiscordLog(LogMessage arg)
@@ -74,9 +83,9 @@ internal class DotBot : IDisposable
             return;
         }
 
-        while (_client.ConnectionState != ConnectionState.Connected)
+        while (Client.ConnectionState != ConnectionState.Connected)
         {
-            if (_client.ConnectionState == ConnectionState.Connecting)
+            if (Client.ConnectionState == ConnectionState.Connecting)
             {
                 await Task.Delay(1000);
                 continue;
@@ -90,6 +99,15 @@ internal class DotBot : IDisposable
     private Task OnDiscordReady()
     {
         OnClientReady?.Invoke();
+        foreach (SocketGuild guild in Client.Guilds)
+            OnGuildReady?.Invoke(guild);
+        
+        return Task.CompletedTask;
+    }
+    
+    private Task OnDiscordGuildJoin(SocketGuild guild)
+    {
+        OnGuildReady?.Invoke(guild);
         return Task.CompletedTask;
     }
 }
