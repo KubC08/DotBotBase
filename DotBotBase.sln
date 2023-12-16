@@ -1,0 +1,24 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotBotBase.App", "DotBotBase.App\DotBotBase.App.csproj", "{49E1CCB8-0952-44B7-945D-759194A1828B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DotBotBase.Core", "DotBotBase.Core\DotBotBase.Core.csproj", "{3A9504E2-B4DE-45BA-A567-75200B617A28}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Modules", "Modules", "{699548AF-D038-418F-8FD6-108C4DBD3AF3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{49E1CCB8-0952-44B7-945D-759194A1828B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49E1CCB8-0952-44B7-945D-759194A1828B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49E1CCB8-0952-44B7-945D-759194A1828B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49E1CCB8-0952-44B7-945D-759194A1828B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A9504E2-B4DE-45BA-A567-75200B617A28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A9504E2-B4DE-45BA-A567-75200B617A28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A9504E2-B4DE-45BA-A567-75200B617A28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A9504E2-B4DE-45BA-A567-75200B617A28}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
