@@ -24,6 +24,7 @@ bot.OnClientReady += () =>
         bot.AddCommand(CommandService.Build(command));
 };
 bot.OnClientStop += ModuleService.ShutdownModules;
+bot.OnCommand += CommandService.RunCommand;
 
 Task running = bot.Run();
 running.Wait();

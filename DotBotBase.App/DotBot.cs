@@ -9,11 +9,13 @@ internal class DotBot : IDisposable
 {
     public const string Name = "DotBot";
 
-    public delegate void OnGuildReadyHandler(SocketGuild guild);
+    public delegate Task OnGuildReadyHandler(SocketGuild guild);
+    public delegate Task? OnCommandHandler(SocketSlashCommand command);
     
     public event Action? OnClientReady;
     public event Action? OnClientStop;
     public event OnGuildReadyHandler? OnGuildReady;
+    public event OnCommandHandler? OnCommand;
 
     private readonly Logger _log = new Logger(null, Name);
     public readonly DiscordSocketClient Client;
@@ -31,6 +33,7 @@ internal class DotBot : IDisposable
         Client.Disconnected += OnDiscordDisconnect;
         Client.Ready += OnDiscordReady;
         Client.JoinedGuild += OnDiscordGuildJoin;
+        Client.SlashCommandExecuted += OnDiscordSlashCommand;
     }
 
     public void Dispose() =>
@@ -105,9 +108,7 @@ internal class DotBot : IDisposable
         return Task.CompletedTask;
     }
     
-    private Task OnDiscordGuildJoin(SocketGuild guild)
-    {
-        OnGuildReady?.Invoke(guild);
-        return Task.CompletedTask;
-    }
+    private Task? OnDiscordGuildJoin(SocketGuild guild) => OnGuildReady?.Invoke(guild);
+    
+    private Task? OnDiscordSlashCommand(SocketSlashCommand arg) => OnCommand?.Invoke(arg);
 }

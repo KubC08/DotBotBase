@@ -1,6 +1,6 @@
 using Discord;
+using Discord.WebSocket;
 using DotBotBase.Core.Logging;
-using DotBotBase.Core.Modular;
 
 namespace DotBotBase.Core.Commands;
 
@@ -8,8 +8,45 @@ public static class CommandService
 {
     private static readonly Logger _log = new Logger("Command Service", DotBotInfo.Name);
 
-    private static readonly List<Command> _commands = new List<Command>();
-    public static Command[] Commands => _commands.ToArray();
+    private static readonly Dictionary<string, Command> _commands = new Dictionary<string, Command>();
+    public static Command[] Commands => _commands.Values.ToArray();
+    
+    public static async Task RunCommand(SocketSlashCommand slashCommand)
+    {
+        if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return;
+        if (command.Options.Length > 0 && slashCommand.Data.Options.Count > 0)
+        {
+            SocketSlashCommandDataOption slashOption = slashCommand.Data.Options.First();
+            CommandOption? option = command.GetOption(slashCommand.Data.Name);
+            if (option == null) return;
+            
+            await RunOption(command, slashCommand, option, slashOption);
+            return;
+        }
+
+        await command.Run(slashCommand, null);
+    }
+
+    private static async Task RunOption(Command command, SocketSlashCommand slashCommand, CommandOption option, SocketSlashCommandDataOption slashOption)
+    {
+        if (option.Options.Length > 0 && slashOption.Options.Count > 0)
+        {
+            SocketSlashCommandDataOption subSlashOption = slashOption.Options.First();
+            CommandOption? subOption = option.GetOption(subSlashOption.Name);
+            if (subOption == null) return;
+
+            if (subOption is Command)
+            {
+                await RunOption((Command)subOption, slashCommand, subOption, subSlashOption);
+                return;
+            }
+
+            await RunOption(command, slashCommand, subOption, subSlashOption);
+            return;
+        }
+        
+        await command.Run(slashCommand, slashOption.Value);
+    }
 
     public static Command? LoadCommand<T>() where T : Command, new()
     {
@@ -19,7 +56,7 @@ public static class CommandService
         _log.SafeInvoke($"Failed to load command {typeof(T).Name}", () => command = new T());
         if (command == null) return null;
         
-        _commands.Add(command);
+        _commands.Add(command.Name, command);
         _log.LogInfo($"Successfully loaded command {command.Name}");
         return command;
     }

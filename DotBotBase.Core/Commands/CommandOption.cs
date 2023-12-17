@@ -20,4 +20,16 @@ public abstract class CommandOption
     public ChannelType[] ChannelTypes { get; set; } = Array.Empty<ChannelType>();
 
     public CommandOption[] Options { get; set; } = Array.Empty<CommandOption>();
+
+    private Dictionary<string, CommandOption> _options = new Dictionary<string, CommandOption>();
+    public CommandOption? GetOption(string command)
+    {
+        if (Options.Length != _options.Count)
+        {
+            _options = new Dictionary<string, CommandOption>();
+            foreach (CommandOption option in Options)
+                _options.Add(option.Name, option);
+        }
+        return _options.GetValueOrDefault(command);
+    }
 }

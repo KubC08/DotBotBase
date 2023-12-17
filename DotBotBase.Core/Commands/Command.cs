@@ -1,4 +1,5 @@
 using Discord;
+using Discord.WebSocket;
 
 namespace DotBotBase.Core.Commands;
 
@@ -9,5 +10,5 @@ public abstract class Command : CommandOption
 
     public virtual bool IsNsfw { get; } = false;
 
-    public virtual Task Run() => Task.CompletedTask;
+    public virtual Task Run(SocketSlashCommand command, object? argument) => Task.CompletedTask;
 }
