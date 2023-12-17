@@ -3,7 +3,7 @@ using Discord.WebSocket;
 
 namespace DotBotBase.Core.Commands;
 
-public abstract class Command : CommandOption
+public abstract class Command : CommandOptionExtendable
 {
     // Type is ignored on initial commands, so we can do this
     public override ApplicationCommandOptionType Type => ApplicationCommandOptionType.SubCommand;

@@ -17,7 +17,7 @@ public static class CommandService
         if (command.Options.Length > 0 && slashCommand.Data.Options.Count > 0)
         {
             SocketSlashCommandDataOption slashOption = slashCommand.Data.Options.First();
-            CommandOption? option = command.GetOption(slashCommand.Data.Name);
+            CommandOptionExtendable? option = command.GetOption(slashCommand.Data.Name);
             if (option == null) return;
             
             await RunOption(command, slashCommand, option, slashOption);
@@ -27,12 +27,12 @@ public static class CommandService
         await command.Run(slashCommand, null);
     }
 
-    private static async Task RunOption(Command command, SocketSlashCommand slashCommand, CommandOption option, SocketSlashCommandDataOption slashOption)
+    private static async Task RunOption(Command command, SocketSlashCommand slashCommand, CommandOptionExtendable optionExtendable, SocketSlashCommandDataOption slashOption)
     {
-        if (option.Options.Length > 0 && slashOption.Options.Count > 0)
+        if (optionExtendable.Options.Length > 0 && slashOption.Options.Count > 0)
         {
             SocketSlashCommandDataOption subSlashOption = slashOption.Options.First();
-            CommandOption? subOption = option.GetOption(subSlashOption.Name);
+            CommandOptionExtendable? subOption = optionExtendable.GetOption(subSlashOption.Name);
             if (subOption == null) return;
 
             if (subOption is Command)
@@ -71,10 +71,10 @@ public static class CommandService
         return builder.Build();
     }
     
-    private static SlashCommandOptionBuilder[] BuildOptions(CommandOption[] options)
+    private static SlashCommandOptionBuilder[] BuildOptions(CommandOptionExtendable[] options)
     {
         List<SlashCommandOptionBuilder> output = new List<SlashCommandOptionBuilder>();
-        foreach (CommandOption option in options)
+        foreach (CommandOptionExtendable option in options)
         {
             SlashCommandOptionBuilder builder = new SlashCommandOptionBuilder();
             builder.WithName(option.Name);
