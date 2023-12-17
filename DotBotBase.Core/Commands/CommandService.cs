@@ -17,22 +17,23 @@ public static class CommandService
         if (command.Options.Length > 0 && slashCommand.Data.Options.Count > 0)
         {
             SocketSlashCommandDataOption slashOption = slashCommand.Data.Options.First();
-            CommandOptionExtendable? option = command.GetOption(slashCommand.Data.Name);
+            ICommandOption? option = GetOptionByName(command.Options, slashOption.Name);
             if (option == null) return;
             
             await RunOption(command, slashCommand, option, slashOption);
             return;
         }
 
+        _log.LogDebug($"Running slash command {command.Name}");
         await command.Run(slashCommand, null);
     }
 
-    private static async Task RunOption(Command command, SocketSlashCommand slashCommand, CommandOptionExtendable optionExtendable, SocketSlashCommandDataOption slashOption)
+    private static async Task RunOption(Command command, SocketSlashCommand slashCommand, ICommandOption option, SocketSlashCommandDataOption slashOption)
     {
-        if (optionExtendable.Options.Length > 0 && slashOption.Options.Count > 0)
+        if (option.Options.Length > 0 && slashOption.Options.Count > 0)
         {
             SocketSlashCommandDataOption subSlashOption = slashOption.Options.First();
-            CommandOptionExtendable? subOption = optionExtendable.GetOption(subSlashOption.Name);
+            ICommandOption? subOption = GetOptionByName(option.Options, subSlashOption.Name);
             if (subOption == null) return;
 
             if (subOption is Command)
@@ -45,6 +46,7 @@ public static class CommandService
             return;
         }
         
+        _log.LogDebug($"Running slash command option {command.Name}");
         await command.Run(slashCommand, slashOption.Value);
     }
 
@@ -54,15 +56,23 @@ public static class CommandService
 
         T? command = null;
         _log.SafeInvoke($"Failed to load command {typeof(T).Name}", () => command = new T());
-        if (command == null) return null;
+        if (command == null || command.Name == null || command.Description == null) return null;
         
         _commands.Add(command.Name, command);
         _log.LogInfo($"Successfully loaded command {command.Name}");
         return command;
     }
+
+    public static ICommandOption? GetOptionByName(ICommandOption[] options, string name)
+    {
+        foreach (ICommandOption option in options)
+            if (option.Name == name) return option;
+        return null;
+    }
     
     public static SlashCommandProperties Build(Command command)
     {
+        _log.LogDebug($"Building command {command.Name}");
         SlashCommandBuilder builder = new SlashCommandBuilder();
         builder.WithName(command.Name);
         builder.WithDescription(command.Description);
@@ -71,15 +81,18 @@ public static class CommandService
         return builder.Build();
     }
     
-    private static SlashCommandOptionBuilder[] BuildOptions(CommandOptionExtendable[] options)
+    private static SlashCommandOptionBuilder[] BuildOptions(ICommandOption[] options)
     {
         List<SlashCommandOptionBuilder> output = new List<SlashCommandOptionBuilder>();
-        foreach (CommandOptionExtendable option in options)
+        foreach (ICommandOption option in options)
         {
+            if (option.Name == null || option.Description == null || option.Type == null) continue;
+            _log.LogDebug($"Building command option {option.Name}");
+            
             SlashCommandOptionBuilder builder = new SlashCommandOptionBuilder();
             builder.WithName(option.Name);
             builder.WithDescription(option.Description);
-            builder.WithType(option.Type);
+            builder.WithType((ApplicationCommandOptionType)option.Type);
             builder.WithRequired(option.IsRequired);
             builder.WithAutocomplete(option.IsAutoComplete);
             builder.MaxLength = option.MaxLength;

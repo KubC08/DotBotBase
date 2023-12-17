@@ -54,8 +54,8 @@ public static class ModuleService
             
             _log.SafeInvoke($"Failed to start {entry.Value.Name}", () =>
             {
-                entry.Value.Start();
                 entry.Value.IsRunning = true;
+                entry.Value.Start();
                 _log.LogInfo($"Successfully start {entry.Value.Name}");
             });
         }
@@ -71,8 +71,8 @@ public static class ModuleService
             
             _log.SafeInvoke($"Failed to shut down {entry.Value.Name}", () =>
             {
-                entry.Value.Shutdown();
                 entry.Value.IsRunning = false;
+                entry.Value.Shutdown();
                 _log.LogInfo($"Successfully shut down {entry.Value.Name}");
             });
         }

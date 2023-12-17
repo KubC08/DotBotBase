@@ -12,7 +12,7 @@ public static class LoggingService
     public delegate void OnLogHandler(LogType type, string log, Exception? ex = null);
     public static event OnLogHandler? OnLog;
     
-    public static readonly LogType AllowedTypes = LogType.Error | LogType.Warning | LogType.Info;
+    public static LogType AllowedTypes = LogType.Error | LogType.Warning | LogType.Info;
 
     internal static void Log(LogType type, string log, Exception? ex = null)
     {

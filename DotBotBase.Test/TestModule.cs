@@ -1,4 +1,5 @@
 ﻿using DotBotBase.Core.Modular;
+using DotBotBase.Test.Commands;
 
 namespace DotBotBase.Test;
 
@@ -10,5 +11,6 @@ public class TestModule : BotModule
 
     public override void Start()
     {
+        AddCommand<TestCommand>();
     }
 }
