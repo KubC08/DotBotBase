@@ -7,7 +7,7 @@ public abstract class BotModule
 {
     internal bool IsRunning = false;
 
-    private List<Command> _commands = new List<Command>();
+    private readonly List<Command> _commands = new List<Command>();
     public Command[] Commands => _commands.ToArray();
     
     public abstract string Name { get; }

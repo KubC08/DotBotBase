@@ -1,23 +1,64 @@
 using System.Reflection;
 using DotBotBase.Core.Logging;
+using Mono.Cecil;
 
 namespace DotBotBase.Core.Modular;
 
 public static class ModuleService
 {
     private static readonly Logger _log = new Logger("Module Service", DotBotInfo.Name);
-
+    
     private static readonly Dictionary<Assembly, BotModule> _modules = new Dictionary<Assembly, BotModule>();
     public static BotModule[] Modules => _modules.Values.ToArray();
 
-    public static void LoadLibrary(string assemblyPath)
+    public static void LoadModules(string targetPath)
     {
-        if (!File.Exists(assemblyPath)) return;
+        Dictionary<string, ModuleInfo> modules = new Dictionary<string, ModuleInfo>();
+        foreach (var moduleFile in Directory.GetFiles(targetPath, "*.dll"))
+        {
+            ModuleDefinition moduleDef = ModuleDefinition.ReadModule(moduleFile);
+            foreach (var typeDef in moduleDef.Types)
+            {
+                if (!typeDef.IsClass || typeDef.IsAbstract) continue;
+                if (!typeDef.TryGetAttribute(typeof(ModulePropertiesAttribute), out var moduleProperties) || moduleProperties == null) continue;
+                if (!moduleProperties.HasConstructorArguments || moduleProperties.ConstructorArguments.Count != 1) continue;
 
-        Assembly library = Assembly.LoadFile(assemblyPath);
-        string assemblyName = library.GetName().ToString();
-        
-        _log.LogInfo($"Successfully loaded library {assemblyName}");
+                string guid = (string)moduleProperties.ConstructorArguments[0].Value;
+
+                List<string> dependencies = new List<string>();
+                CustomAttribute[] dependencyAttributes = typeDef.GetCustomAttributes(typeof(ModuleDependencyAttribute));
+                foreach (var dependencyAttribute in dependencyAttributes)
+                    if (dependencyAttribute.HasConstructorArguments && dependencyAttribute.ConstructorArguments.Count == 1)
+                        dependencies.Add((string)dependencyAttribute.ConstructorArguments[0].Value);
+                
+                modules.Add(guid, new ModuleInfo()
+                {
+                    GUID = guid,
+                    Dependencies = dependencies.ToArray(),
+                    AssemblyPath = Path.Combine(targetPath, moduleFile)
+                });
+                break; // Do not continue, we only support a single module class
+            }
+        }
+
+        SortedDictionary<string, ModuleInfo> sortedModules = new SortedDictionary<string, ModuleInfo>();
+        foreach (var entry in modules)
+            LoadSorted(sortedModules, modules, entry.Value);
+
+        foreach (var entry in sortedModules)
+            LoadModule(entry.Value.AssemblyPath);
+    }
+
+    private static void LoadSorted(SortedDictionary<string, ModuleInfo> sortedModules, Dictionary<string, ModuleInfo> modules, ModuleInfo moduleInfo)
+    {
+        if (sortedModules.ContainsKey(moduleInfo.GUID)) return;
+        foreach (var dependency in moduleInfo.Dependencies)
+        {
+            if (!modules.TryGetValue(dependency, out var dependencyModule))
+                throw new MissingDependencyException(dependency);
+            LoadSorted(sortedModules, modules, dependencyModule);
+        }
+        LoadSorted(sortedModules, modules, moduleInfo);
     }
 
     public static void LoadModule(string assemblyPath)
@@ -76,5 +117,12 @@ public static class ModuleService
                 _log.LogInfo($"Successfully shut down {entry.Value.Name}");
             });
         }
+    }
+
+    private struct ModuleInfo
+    {
+        public string GUID;
+        public string[] Dependencies;
+        public string AssemblyPath;
     }
 }

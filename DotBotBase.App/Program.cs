@@ -7,7 +7,7 @@ using DotBotBase.Core.Modular;
 
 if (!Directory.Exists("config")) Directory.CreateDirectory("config");
 if (!Directory.Exists("modules")) Directory.CreateDirectory("modules");
-if (!Directory.Exists("libraries")) Directory.CreateDirectory("libraries");
+//if (!Directory.Exists("libraries")) Directory.CreateDirectory("libraries");
 
 LoggingService.AllowedTypes = LoggingService.All;
 
@@ -16,10 +16,11 @@ if (settings == null || string.IsNullOrEmpty(settings.Token)) return;
 
 DotBot bot = new DotBot(settings);
 
-foreach (string library in Directory.GetFiles("libraries", "*.dll"))
+ModuleService.LoadModules(Path.Combine(Directory.GetCurrentDirectory(), "modules"));
+/*foreach (string library in Directory.GetFiles("libraries", "*.dll"))
     ModuleService.LoadLibrary(Path.Combine(Directory.GetCurrentDirectory(), library));
 foreach (string module in Directory.GetFiles("modules", "*.dll"))
-    ModuleService.LoadModule(Path.Combine(Directory.GetCurrentDirectory(), module));
+    ModuleService.LoadModule(Path.Combine(Directory.GetCurrentDirectory(), module));*/
 
 bot.OnClientReady += async () =>
 {
