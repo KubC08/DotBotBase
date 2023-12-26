@@ -3,6 +3,7 @@ using DotBotBase.Test.Commands;
 
 namespace DotBotBase.Test;
 
+[ModuleProperties("kubc08.dotbotbase.test")]
 public class TestModule : BotModule
 {
     public override string Name => "Test Module";

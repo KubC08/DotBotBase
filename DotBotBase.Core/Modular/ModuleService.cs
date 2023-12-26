@@ -7,10 +7,26 @@ namespace DotBotBase.Core.Modular;
 public static class ModuleService
 {
     private static readonly Logger _log = new Logger("Module Service", DotBotInfo.Name);
-    
+
+    private static readonly Dictionary<string, string> _libraries = new Dictionary<string, string>();
     private static readonly Dictionary<Assembly, BotModule> _modules = new Dictionary<Assembly, BotModule>();
     public static BotModule[] Modules => _modules.Values.ToArray();
 
+    public static void SetupLibraries(string targetPath)
+    {
+        foreach (var libraryFile in Directory.GetFiles(targetPath, "*.dll"))
+        {
+            AssemblyDefinition assemblyDef = AssemblyDefinition.ReadAssembly(libraryFile);
+            _libraries.Add(assemblyDef.Name.FullName, Path.Join(targetPath, libraryFile));
+        }
+    }
+    
+    public static Assembly? ResolveLibrary(object? sender, ResolveEventArgs args)
+    {
+        if (!_libraries.TryGetValue(args.Name, out var libraryPath)) return null;
+        return Assembly.Load(libraryPath);
+    }
+    
     public static void LoadModules(string targetPath)
     {
         Dictionary<string, ModuleInfo> modules = new Dictionary<string, ModuleInfo>();
@@ -35,7 +51,7 @@ public static class ModuleService
                 {
                     GUID = guid,
                     Dependencies = dependencies.ToArray(),
-                    AssemblyPath = Path.Combine(targetPath, moduleFile)
+                    AssemblyPath = Path.Join(targetPath, moduleFile)
                 });
                 break; // Do not continue, we only support a single module class
             }
@@ -58,7 +74,7 @@ public static class ModuleService
                 throw new MissingDependencyException(dependency);
             LoadSorted(sortedModules, modules, dependencyModule);
         }
-        LoadSorted(sortedModules, modules, moduleInfo);
+        sortedModules.Add(moduleInfo.GUID, moduleInfo);
     }
 
     public static void LoadModule(string assemblyPath)

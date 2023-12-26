@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace DotBotBase.App.Config;
+namespace DotBotBase.Core.Config;
 
 public interface ISettings
 {
