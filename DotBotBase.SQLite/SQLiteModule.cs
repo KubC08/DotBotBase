@@ -9,7 +9,6 @@ namespace DotBotBase.SQLite;
 public class SQLiteModule : BotModule
 {
     public static ModuleSettings? Settings { get; private set; } = null;
-    public static SqliteConnection? Connection { get; private set; } = null;
     
     public override string Name => "SQLite Extension";
     public override string Version => "1.0.0";
@@ -19,7 +18,5 @@ public class SQLiteModule : BotModule
     {
         Settings = ConfigService.GetOrSetConfig<ModuleSettings>("sqlite");
         if (Settings == null || string.IsNullOrEmpty(Settings.FilePath)) return;
-        
-        Connection = new SqliteConnection($"Data Source={Settings.FilePath};Version=3;New=True;Compress=True;");
     }
 }
