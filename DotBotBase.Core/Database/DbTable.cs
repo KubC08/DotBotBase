@@ -7,16 +7,16 @@ public abstract class DbTable<T> : IDbTable
     private DbTableProperties? _properties;
     public DbTableProperties Properties => _properties ??= DbTableProperties.Create(typeof(T));
 
-    public void Create(T data) => Create((object?)data);
-    public void Update(Dictionary<string, object> filter, T newData) => Update(filter, (object?)newData);
-    public void UpdateByKey(string key, T newData) => UpdateByKey(key, (object?)newData);
-    public T? GetGeneric(Dictionary<string, object> filter) => (T?)Get(filter);
-    public T? GetGenericByKey(string key) => (T?)GetByKey(key);
+    public async Task Create(T data) => await Create((object?)data);
+    public async Task Update(Dictionary<string, object> filter, T newData) => await Update(filter, (object?)newData);
+    public async Task UpdateByKey(string key, T newData) => await UpdateByKey(key, (object?)newData);
+    public async Task<T?> GetGeneric(Dictionary<string, object> filter) => (T?)await Get(filter);
+    public async Task<T?> GetGenericByKey(string key) => (T?)await GetByKey(key);
 
-    public abstract void Create(object? data);
-    public abstract void Update(Dictionary<string, object> filter, object? newData);
-    public abstract void UpdateByKey(string key, object? newData);
-    public abstract void Delete(string key);
-    public abstract object? Get(Dictionary<string, object> filter);
-    public abstract object? GetByKey(string key);
+    public abstract Task Create(object? data);
+    public abstract Task Update(Dictionary<string, object> filter, object? newData);
+    public abstract Task UpdateByKey(string key, object? newData);
+    public abstract Task Delete(string key);
+    public abstract Task<object?> Get(Dictionary<string, object> filter);
+    public abstract Task<object?> GetByKey(string key);
 }

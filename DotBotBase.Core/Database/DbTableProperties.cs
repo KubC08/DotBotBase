@@ -23,6 +23,8 @@ public class DbTableProperties
         return properties;
     }
 
+    public DbColumnAttribute[] GetColumns() => _columns.Values.ToArray();
+
     public DbColumnAttribute? GetColumn(string name) => _columns.GetValueOrDefault(name);
     public FieldInfo? GetField(string name) => _fields.GetValueOrDefault(name);
     public FieldInfo? GetField(DbColumnAttribute column) => _fields.GetValueOrDefault(column.Name);

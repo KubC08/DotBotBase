@@ -5,12 +5,12 @@ public interface IDbTable
     public string Name { get; }
     public DbTableProperties Properties { get; }
     
-    public void Create(object? data);
-    public void Update(Dictionary<string, object> filter, object? newData);
-    public void UpdateByKey(string key, object? newData);
-    public void Delete(string key);
-    public object? Get(Dictionary<string, object> filter);
-    public object? GetByKey(string key);
+    public Task Create(object? data);
+    public Task Update(Dictionary<string, object> filter, object? newData);
+    public Task UpdateByKey(string key, object? newData);
+    public Task Delete(string key);
+    public Task<object?> Get(Dictionary<string, object> filter);
+    public Task<object?> GetByKey(string key);
 }
 
 /*public interface IDbTable<TKey, TValue>
