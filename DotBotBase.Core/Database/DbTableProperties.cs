@@ -4,7 +4,7 @@ namespace DotBotBase.Core.Database;
 
 public class DbTableProperties
 {
-    private readonly Dictionary<string, DbColumnAttribute> _columns = new Dictionary<string, DbColumnAttribute>();
+    private readonly SortedDictionary<string, DbColumnAttribute> _columns = new SortedDictionary<string, DbColumnAttribute>();
     private readonly Dictionary<string, FieldInfo> _fields = new Dictionary<string, FieldInfo>();
 
     public static DbTableProperties Create(Type type)

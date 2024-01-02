@@ -1,3 +1,6 @@
+using System.Reflection;
+using DotBotBase.Core.Database;
+
 namespace DotBotBase.SQLite.Database;
 
 public static class SQLiteUtils
@@ -14,5 +17,20 @@ public static class SQLiteUtils
         else if (type == typeof(long)) return "BIGINT";
         else
             throw new Exception("Invalid SQL type " + type.Name);
+    }
+
+    public static string GetColumnList(DbTableProperties properties)
+    {
+        string columns = "";
+        foreach (var column in properties.GetColumns())
+        {
+            FieldInfo? field = properties.GetField(column.Name);
+            if (field == null) continue;
+
+            if (columns.Length > 0) columns += ", ";
+            columns += $"{column.Name} {GetSQLType(field.FieldType)}";
+            if (column.NotNullable) columns += " NOT NULL";
+        }
+        return columns;
     }
 }

@@ -29,11 +29,11 @@ public class SQLiteConnection : DbConnection
         await using SqliteCommand cmd = _connection.CreateCommand();
         
         cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = $name";
+        cmd.Parameters.AddWithValue("$name", name);
         object? result = await cmd.ExecuteScalarAsync();
 
         if (result == null) return false;
-        if (Convert.ToInt32(result) > 0) return true;
-        return false;
+        return Convert.ToInt32(result) > 0;
     }
 
     public override async Task<DbTable<T>?> GetTable<T>(string name)
@@ -49,21 +49,9 @@ public class SQLiteConnection : DbConnection
         if (_connection?.State != ConnectionState.Open) return null;
 
         DbTable<T> table = new SQLiteTable<T>(name, _connection);
-        DbTableProperties properties = table.Properties;
-
-        string columns = "";
-        foreach (var column in properties.GetColumns())
-        {
-            FieldInfo? field = properties.GetField(column.Name);
-            if (field == null) continue;
-
-            if (columns.Length > 0) columns += ", ";
-            columns += $"{column.Name} {SQLiteUtils.GetSQLType(field.FieldType)}";
-            if (column.NotNullable) columns += " NOT NULL";
-        }
-
         await using SqliteCommand cmd = _connection.CreateCommand();
-        cmd.CommandText = $"CREATE TABLE IF NOT EXISTS {name} ({columns})";
+        
+        cmd.CommandText = $"CREATE TABLE IF NOT EXISTS {name} ({SQLiteUtils.GetColumnList(table.Properties)})";
         await cmd.ExecuteNonQueryAsync();
 
         return table;
