@@ -17,7 +17,9 @@ public abstract class BotModule
     public Logger? Log { get; internal set; }
 
     public virtual void Start() {}
+    public virtual Task StartAsync() => Task.CompletedTask;
     public virtual void Shutdown() {}
+    public virtual Task ShutdownAsync() => Task.CompletedTask;
 
     public T? AddCommand<T>() where T : Command, new()
     {

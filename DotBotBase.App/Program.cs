@@ -3,6 +3,7 @@ using DotBotBase.App;
 using DotBotBase.App.Config;
 using DotBotBase.Core.Commands;
 using DotBotBase.Core.Config;
+using DotBotBase.Core.Database;
 using DotBotBase.Core.Logging;
 using DotBotBase.Core.Modular;
 
@@ -21,6 +22,7 @@ BotSettings? settings = ConfigService.GetOrSetConfig<BotSettings>("dotbotbase");
 if (settings == null || string.IsNullOrEmpty(settings.Token)) return;
 
 DotBot bot = new DotBot(settings);
+if (!string.IsNullOrEmpty(settings.DatabaseHost)) DatabaseService.LoadHost(settings.DatabaseHost);
 
 AppDomain.CurrentDomain.AssemblyResolve += ModuleService.ResolveLibrary;
 ModuleService.SetupLibraries(librariesDirectory);

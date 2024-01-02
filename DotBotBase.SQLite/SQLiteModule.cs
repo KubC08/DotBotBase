@@ -4,7 +4,7 @@ using DotBotBase.SQLite.Database;
 
 namespace DotBotBase.SQLite;
 
-[ModuleProperties("kubc08.dotbotbase.sqlite")]
+[ModuleProperties("kubc08.dotbotbase.sqlite", IsExtension = true)]
 public class SQLiteModule : BotModule
 {
     public override string Name => "SQLite Extension";

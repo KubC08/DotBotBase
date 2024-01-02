@@ -9,10 +9,12 @@ public class BotSettings : ISettings
     
     public string? Token { get; private set; }
     public bool AutoReconnect { get; private set; }
+    public string? DatabaseHost { get; private set; }
     
     public void LoadDefaults()
     {
         Token = "";
         AutoReconnect = true;
+        DatabaseHost = "";
     }
 }

@@ -10,7 +10,9 @@ public class SQLiteConnection : DbConnection
     
     public override DbConnection Connect(string host, string database)
     {
-        _connection = new SqliteConnection($"Data Source={Path.Join(host, database)};Version=3;New=True;Compress=True;");
+        if (!Directory.Exists(host)) Directory.CreateDirectory(host);
+        
+        _connection = new SqliteConnection($"Data Source={Path.Join(host, database + ".db")};Version=3;New=True;Compress=True;");
         _connection.Open();
         
         return this;
@@ -43,7 +45,7 @@ public class SQLiteConnection : DbConnection
         return new SQLiteTable<T>(name, _connection);
     }
 
-    public override async Task<DbTable<T>?> CreateTable<T>(string name, T data)
+    public override async Task<DbTable<T>?> CreateTable<T>(string name)
     {
         if (_connection?.State != ConnectionState.Open) return null;
 

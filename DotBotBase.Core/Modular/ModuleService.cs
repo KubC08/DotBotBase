@@ -30,6 +30,7 @@ public static class ModuleService
     public static void LoadModules(string targetPath)
     {
         Dictionary<string, ModuleInfo> modules = new Dictionary<string, ModuleInfo>();
+        Dictionary<string, ModuleInfo> extensions = new Dictionary<string, ModuleInfo>();
         foreach (var moduleFile in Directory.GetFiles(targetPath, "*.dll"))
         {
             ModuleDefinition moduleDef = ModuleDefinition.ReadModule(moduleFile);
@@ -39,25 +40,38 @@ public static class ModuleService
                 if (!typeDef.TryGetAttribute(typeof(ModulePropertiesAttribute), out var moduleProperties) || moduleProperties == null) continue;
                 if (!moduleProperties.HasConstructorArguments || moduleProperties.ConstructorArguments.Count != 1) continue;
 
-                string guid = (string)moduleProperties.ConstructorArguments[0].Value;
+                //string guid = (string)moduleProperties.ConstructorArguments[0].Value;
+                string? guid = null;
+                bool isExtension = false;
+                foreach (var property in moduleProperties.Properties)
+                {
+                    if (property.Name == "GUID") guid = (string)property.Argument.Value;
+                    else if (property.Name == "IsExtension") isExtension = (bool)property.Argument.Value;
+                }
+                if (guid == null) return;
 
                 List<string> dependencies = new List<string>();
                 CustomAttribute[] dependencyAttributes = typeDef.GetCustomAttributes(typeof(ModuleDependencyAttribute));
                 foreach (var dependencyAttribute in dependencyAttributes)
                     if (dependencyAttribute.HasConstructorArguments && dependencyAttribute.ConstructorArguments.Count == 1)
                         dependencies.Add((string)dependencyAttribute.ConstructorArguments[0].Value);
-                
-                modules.Add(guid, new ModuleInfo()
+
+                ModuleInfo info = new ModuleInfo()
                 {
                     GUID = guid,
                     Dependencies = dependencies.ToArray(),
                     AssemblyPath = Path.Join(targetPath, moduleFile)
-                });
+                };
+                if (isExtension) extensions.Add(guid, info);
+                modules.Add(guid, info);
+                
                 break; // Do not continue, we only support a single module class
             }
         }
 
         SortedDictionary<string, ModuleInfo> sortedModules = new SortedDictionary<string, ModuleInfo>();
+        foreach (var entry in extensions)
+            LoadSorted(sortedModules, modules, entry.Value);
         foreach (var entry in modules)
             LoadSorted(sortedModules, modules, entry.Value);
 
@@ -113,6 +127,7 @@ public static class ModuleService
             {
                 entry.Value.IsRunning = true;
                 entry.Value.Start();
+                entry.Value.StartAsync().Wait();
                 _log.LogInfo($"Successfully start {entry.Value.Name}");
             });
         }
@@ -130,6 +145,7 @@ public static class ModuleService
             {
                 entry.Value.IsRunning = false;
                 entry.Value.Shutdown();
+                entry.Value.ShutdownAsync().Wait();
                 _log.LogInfo($"Successfully shut down {entry.Value.Name}");
             });
         }
