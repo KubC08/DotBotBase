@@ -1,7 +1,9 @@
 namespace DotBotBase.Core.Database;
 
-public abstract class DbConnection
+public abstract class DbConnection : IDisposable
 {
+    public virtual void Dispose() => Disconnect();
+    
     public abstract DbConnection Connect(string host, string database);
     public abstract void Disconnect();
 
