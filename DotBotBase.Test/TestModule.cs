@@ -18,7 +18,7 @@ public class TestModule : BotModule
     public override async Task StartAsync()
     {
         AddCommand<TestCommand>();
-
+        
         if (DatabaseService.IsSetup)
         {
             Database = DatabaseService.Connect("test");

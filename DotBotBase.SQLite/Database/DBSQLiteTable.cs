@@ -1,17 +1,17 @@
 using System.Data;
+using System.Data.SQLite;
 using System.Reflection;
 using DotBotBase.Core.Database;
-using Microsoft.Data.Sqlite;
 
 namespace DotBotBase.SQLite.Database;
 
-public class SQLiteTable<T> : DbTable<T> where T : new()
+public class DBSQLiteTable<T> : DbTable<T> where T : new()
 {
-    private SqliteConnection _connection;
+    private SQLiteConnection _connection;
     
     public override string Name { get; }
     
-    public SQLiteTable(string name, SqliteConnection connection)
+    public DBSQLiteTable(string name, SQLiteConnection connection)
     {
         Name = name;
         
@@ -22,7 +22,7 @@ public class SQLiteTable<T> : DbTable<T> where T : new()
     {
         if (_connection?.State != ConnectionState.Open) return;
         
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        await using SQLiteCommand cmd = _connection.CreateCommand();
 
         string valueIndexes = "";
         foreach (var column in Properties.GetColumns())
@@ -46,7 +46,7 @@ public class SQLiteTable<T> : DbTable<T> where T : new()
     {
         if (_connection?.State != ConnectionState.Open) return;
 
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        await using SQLiteCommand cmd = _connection.CreateCommand();
         
         string where = "";
         foreach (var filterEntry in filter)
@@ -77,7 +77,7 @@ public class SQLiteTable<T> : DbTable<T> where T : new()
     {
         if (_connection?.State != ConnectionState.Open) return;
 
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        await using SQLiteCommand cmd = _connection.CreateCommand();
         
         string where = "";
         foreach (var filterEntry in filter)
@@ -95,7 +95,7 @@ public class SQLiteTable<T> : DbTable<T> where T : new()
     {
         if (_connection?.State != ConnectionState.Open) return Array.Empty<object>();
 
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        await using SQLiteCommand cmd = _connection.CreateCommand();
 
         string where = "";
         foreach (var filterEntry in filter)

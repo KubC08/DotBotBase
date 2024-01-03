@@ -17,8 +17,8 @@ public class TestSubCommand : Command
         }
     };
 
-    public override async Task Run(SocketSlashCommand command, object? argument)
+    public override async Task Run(SocketSlashCommand command, Dictionary<string, object> argument)
     {
-        await command.RespondAsync($"Your sub command argument is {argument}");
+        await command.RespondAsync($"Your sub command argument is {argument["testval2"]}");
     }
 }

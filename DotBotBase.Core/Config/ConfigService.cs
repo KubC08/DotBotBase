@@ -21,7 +21,7 @@ public static class ConfigService
     public static T? GetConfig<T>(string file) where T : ISettings
     {
         if (!file.EndsWith(".json")) file += ".json";
-        if (!File.Exists(file) || ConfigLocation == null) return default;
+        if (!File.Exists(Path.Join(ConfigLocation, file)) || ConfigLocation == null) return default;
         
         _log.LogDebug($"Parsing file config {file}");
         string jsonData = File.ReadAllText(Path.Join(ConfigLocation, file));
@@ -43,7 +43,7 @@ public static class ConfigService
         _log.SafeInvoke($"Failed to serialize or save JSON for {file}", () =>
         {
             string json = JsonConvert.SerializeObject(obj, Formatting.Indented);
-            File.WriteAllText(Path.Join(file), json);
+            File.WriteAllText(Path.Join(ConfigLocation, file), json);
         });
         _log.LogDebug($"Saved JSON config to {file}");
     }

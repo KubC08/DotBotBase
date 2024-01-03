@@ -9,22 +9,24 @@ public static class ModuleService
     private static readonly Logger _log = new Logger("Module Service", DotBotInfo.Name);
 
     private static readonly Dictionary<string, string> _libraries = new Dictionary<string, string>();
-    private static readonly Dictionary<Assembly, BotModule> _modules = new Dictionary<Assembly, BotModule>();
-    public static BotModule[] Modules => _modules.Values.ToArray();
+    //private static readonly Dictionary<Assembly, BotModule> _modules = new Dictionary<Assembly, BotModule>();
+    private static readonly List<BotModule> _modules = new List<BotModule>();
+    public static BotModule[] Modules => _modules.ToArray();
 
     public static void SetupLibraries(string targetPath)
     {
         foreach (var libraryFile in Directory.GetFiles(targetPath, "*.dll"))
         {
             AssemblyDefinition assemblyDef = AssemblyDefinition.ReadAssembly(libraryFile);
-            _libraries.Add(assemblyDef.Name.FullName, Path.Join(targetPath, libraryFile));
+            _libraries.Add(assemblyDef.Name.FullName, libraryFile);
         }
     }
     
     public static Assembly? ResolveLibrary(object? sender, ResolveEventArgs args)
     {
         if (!_libraries.TryGetValue(args.Name, out var libraryPath)) return null;
-        return Assembly.Load(libraryPath);
+        Assembly result = Assembly.LoadFile(libraryPath);
+        return result;
     }
     
     public static void LoadModules(string targetPath)
@@ -40,15 +42,10 @@ public static class ModuleService
                 if (!typeDef.TryGetAttribute(typeof(ModulePropertiesAttribute), out var moduleProperties) || moduleProperties == null) continue;
                 if (!moduleProperties.HasConstructorArguments || moduleProperties.ConstructorArguments.Count != 1) continue;
 
-                //string guid = (string)moduleProperties.ConstructorArguments[0].Value;
-                string? guid = null;
+                string guid = (string)moduleProperties.ConstructorArguments[0].Value;
                 bool isExtension = false;
                 foreach (var property in moduleProperties.Properties)
-                {
-                    if (property.Name == "GUID") guid = (string)property.Argument.Value;
-                    else if (property.Name == "IsExtension") isExtension = (bool)property.Argument.Value;
-                }
-                if (guid == null) return;
+                    if (property.Name == "IsExtension") isExtension = (bool)property.Argument.Value;
 
                 List<string> dependencies = new List<string>();
                 CustomAttribute[] dependencyAttributes = typeDef.GetCustomAttributes(typeof(ModuleDependencyAttribute));
@@ -60,7 +57,7 @@ public static class ModuleService
                 {
                     GUID = guid,
                     Dependencies = dependencies.ToArray(),
-                    AssemblyPath = Path.Join(targetPath, moduleFile)
+                    AssemblyPath = moduleFile
                 };
                 if (isExtension) extensions.Add(guid, info);
                 modules.Add(guid, info);
@@ -111,7 +108,7 @@ public static class ModuleService
 
             module.Log = new Logger(null, module.Name);
             
-            _modules.Add(moduleAssembly, module);
+            _modules.Add(module);
             _log.LogInfo($"Successfully loaded {module.Name} v{module.Version} by {module.Author}");
         });
     }
@@ -121,14 +118,14 @@ public static class ModuleService
         _log.LogInfo("Starting all modules...");
         foreach (var entry in _modules)
         {
-            if (entry.Value.IsRunning) continue;
+            if (entry.IsRunning) continue;
             
-            _log.SafeInvoke($"Failed to start {entry.Value.Name}", () =>
+            _log.SafeInvoke($"Failed to start {entry.Name}", () =>
             {
-                entry.Value.IsRunning = true;
-                entry.Value.Start();
-                entry.Value.StartAsync().Wait();
-                _log.LogInfo($"Successfully start {entry.Value.Name}");
+                entry.IsRunning = true;
+                entry.Start();
+                entry.StartAsync().Wait();
+                _log.LogInfo($"Successfully start {entry.Name}");
             });
         }
         _log.LogInfo("All modules started!");
@@ -139,14 +136,14 @@ public static class ModuleService
         _log.LogInfo("Shutting down all modules...");
         foreach (var entry in _modules)
         {
-            if (!entry.Value.IsRunning) continue;
+            if (!entry.IsRunning) continue;
             
-            _log.SafeInvoke($"Failed to shut down {entry.Value.Name}", () =>
+            _log.SafeInvoke($"Failed to shut down {entry.Name}", () =>
             {
-                entry.Value.IsRunning = false;
-                entry.Value.Shutdown();
-                entry.Value.ShutdownAsync().Wait();
-                _log.LogInfo($"Successfully shut down {entry.Value.Name}");
+                entry.IsRunning = false;
+                entry.Shutdown();
+                entry.ShutdownAsync().Wait();
+                _log.LogInfo($"Successfully shut down {entry.Name}");
             });
         }
     }

@@ -10,5 +10,5 @@ public abstract class Command : CommandOptionImpl
 
     public virtual bool IsNsfw { get; } = false;
 
-    public virtual Task Run(SocketSlashCommand command, object? argument) => Task.CompletedTask;
+    public virtual Task Run(SocketSlashCommand command, Dictionary<string, object> argument) => Task.CompletedTask;
 }

@@ -11,43 +11,43 @@ public static class CommandService
     private static readonly Dictionary<string, Command> _commands = new Dictionary<string, Command>();
     public static Command[] Commands => _commands.Values.ToArray();
     
-    public static async Task RunCommand(SocketSlashCommand slashCommand)
+    public static Task RunCommand(SocketSlashCommand slashCommand)
     {
-        if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return;
-        if (command.Options.Length > 0 && slashCommand.Data.Options.Count > 0)
-        {
-            SocketSlashCommandDataOption slashOption = slashCommand.Data.Options.First();
-            ICommandOption? option = GetOptionByName(command.Options, slashOption.Name);
-            if (option == null) return;
-            
-            await RunOption(command, slashCommand, option, slashOption);
-            return;
-        }
-
-        _log.LogDebug($"Running slash command {command.Name}");
-        await command.Run(slashCommand, null);
+        if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return Task.CompletedTask;
+        return RunCommand(command, slashCommand, null, null);
     }
 
-    private static async Task RunOption(Command command, SocketSlashCommand slashCommand, ICommandOption option, SocketSlashCommandDataOption slashOption)
+    private static async Task RunCommand(Command command, SocketSlashCommand slashCommand, ICommandOption? option, SocketSlashCommandDataOption? slashOption)
     {
-        if (option.Options.Length > 0 && slashOption.Options.Count > 0)
+        ICommandOption[] commandOptions = option?.Options ?? command.Options;
+        var slashOptions = slashOption?.Options ?? slashCommand.Data.Options;
+        if (slashOptions == null) return;
+
+        Dictionary<string, object> args = new Dictionary<string, object>();
+        if (commandOptions.Length > 0 && slashOptions.Count > 0)
         {
-            SocketSlashCommandDataOption subSlashOption = slashOption.Options.First();
-            ICommandOption? subOption = GetOptionByName(option.Options, subSlashOption.Name);
-            if (subOption == null) return;
-
-            if (subOption is Command)
+            foreach (var subSlashOption in slashOptions)
             {
-                await RunOption((Command)subOption, slashCommand, subOption, subSlashOption);
-                return;
-            }
+                ICommandOption? subOption = GetOptionByName(commandOptions, subSlashOption.Name);
+                if (subOption?.Type == null) continue;
 
-            await RunOption(command, slashCommand, subOption, subSlashOption);
-            return;
+                if (subOption.Type == ApplicationCommandOptionType.SubCommand)
+                {
+                    await RunCommand((Command)subOption, slashCommand, subOption, subSlashOption);
+                    return;
+                }
+                if (subOption.Type == ApplicationCommandOptionType.SubCommandGroup)
+                {
+                    await RunCommand(command, slashCommand, subOption, subSlashOption);
+                    return;
+                }
+                
+                args.Add(subSlashOption.Name, subSlashOption.Value);
+            }
         }
         
-        _log.LogDebug($"Running slash command option {command.Name}");
-        await command.Run(slashCommand, slashOption.Value);
+        _log.LogDebug($"Running command {command.Name}");
+        await command.Run(slashCommand, args);
     }
 
     public static Command? LoadCommand<T>() where T : Command, new()

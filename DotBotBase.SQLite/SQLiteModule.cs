@@ -11,5 +11,5 @@ public class SQLiteModule : BotModule
     public override string Version => "1.0.0";
     public override string Author => "KubC08";
 
-    public override void Start() => DatabaseService.LoadConnectionHandler(typeof(SQLiteConnection));
+    public override void Start() => DatabaseService.LoadConnectionHandler(typeof(DBSQLiteConnection));
 }

@@ -1,18 +1,18 @@
 using System.Data;
 using DotBotBase.Core.Database;
-using Microsoft.Data.Sqlite;
+using System.Data.SQLite;
 
 namespace DotBotBase.SQLite.Database;
 
-public class SQLiteConnection : DbConnection
+public class DBSQLiteConnection : DbConnection
 {
-    private SqliteConnection? _connection;
+    private SQLiteConnection? _connection;
     
     public override DbConnection Connect(string host, string database)
     {
         if (!Directory.Exists(host)) Directory.CreateDirectory(host);
         
-        _connection = new SqliteConnection($"Data Source={Path.Join(host, database + ".db")};Version=3;New=True;Compress=True;");
+        _connection = new SQLiteConnection($"Data Source={Path.Join(host, database + ".db")};Version=3;New=True;Compress=True;");
         _connection.Open();
         
         return this;
@@ -27,7 +27,7 @@ public class SQLiteConnection : DbConnection
     {
         if (_connection?.State != ConnectionState.Open) return false;
 
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        await using SQLiteCommand cmd = _connection.CreateCommand();
         
         cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = $name";
         cmd.Parameters.AddWithValue("$name", name);
@@ -42,15 +42,15 @@ public class SQLiteConnection : DbConnection
         if (_connection?.State != ConnectionState.Open) return null;
         if (!await CheckIfTableExists(name)) return null;
         
-        return new SQLiteTable<T>(name, _connection);
+        return new DBSQLiteTable<T>(name, _connection);
     }
 
     public override async Task<DbTable<T>?> CreateTable<T>(string name)
     {
         if (_connection?.State != ConnectionState.Open) return null;
 
-        DbTable<T> table = new SQLiteTable<T>(name, _connection);
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        DbTable<T> table = new DBSQLiteTable<T>(name, _connection);
+        await using SQLiteCommand cmd = _connection.CreateCommand();
         
         cmd.CommandText = $"CREATE TABLE IF NOT EXISTS {name} ({SQLiteUtils.GetColumnList(table.Properties)})";
         await cmd.ExecuteNonQueryAsync();
@@ -62,7 +62,7 @@ public class SQLiteConnection : DbConnection
     {
         if (_connection?.State != ConnectionState.Open) return;
 
-        await using SqliteCommand cmd = _connection.CreateCommand();
+        await using SQLiteCommand cmd = _connection.CreateCommand();
         cmd.CommandText = $"DROP TABLE IF EXISTS {table.Name}";
         await cmd.ExecuteNonQueryAsync();
     }

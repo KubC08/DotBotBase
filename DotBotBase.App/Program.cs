@@ -18,7 +18,7 @@ if (!Directory.Exists(librariesDirectory)) Directory.CreateDirectory(librariesDi
 LoggingService.AllowedTypes = LoggingService.All;
 
 ConfigService.Setup(configDirectory);
-BotSettings? settings = ConfigService.GetOrSetConfig<BotSettings>("dotbotbase");
+BotSettings? settings = ConfigService.GetOrSetConfig<BotSettings>("settings");
 if (settings == null || string.IsNullOrEmpty(settings.Token)) return;
 
 DotBot bot = new DotBot(settings);

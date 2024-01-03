@@ -1,5 +1,4 @@
 using Discord;
-using Discord.WebSocket;
 using DotBotBase.Core.Commands;
 
 namespace DotBotBase.Test.Commands;
@@ -20,9 +19,4 @@ public class TestCommand : Command
             }
         }
     };
-
-    public override async Task Run(SocketSlashCommand command, object? argument)
-    {
-        await command.RespondAsync($"Your argument is {argument}");
-    }
 }

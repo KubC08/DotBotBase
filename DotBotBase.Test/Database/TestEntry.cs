@@ -4,9 +4,7 @@ namespace DotBotBase.Test.Database;
 
 public class TestEntry
 {
-    [DbColumn("key")]
-    public string Key;
+    [DbColumn("key")] public string Key = "";
 
-    [DbColumn("value")]
-    public string Value;
+    [DbColumn("value")] public string Value = "";
 }

@@ -16,7 +16,7 @@ public static class DatabaseService
     public static void LoadConnectionHandler(Type connectionHandler)
     {
         if (_connectionHandler != null) return;
-        if (!connectionHandler.IsAssignableFrom(typeof(DbConnection)))
+        if (!typeof(DbConnection).IsAssignableFrom(connectionHandler))
             throw new Exception("Invalid connection handler, must be DbConnection!");
 
         _connectionHandler = connectionHandler;
