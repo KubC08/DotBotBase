@@ -13,6 +13,7 @@ public abstract class BotModule
     public abstract string Name { get; }
     public abstract string Version { get; }
     public abstract string Author { get; }
+    public virtual bool ShouldWait => false;
     
     public Logger? Log { get; internal set; }
 

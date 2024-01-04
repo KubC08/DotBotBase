@@ -11,10 +11,10 @@ public static class CommandService
     private static readonly Dictionary<string, Command> _commands = new Dictionary<string, Command>();
     public static Command[] Commands => _commands.Values.ToArray();
     
-    public static Task RunCommand(SocketSlashCommand slashCommand)
+    public static async Task RunCommand(SocketSlashCommand slashCommand)
     {
-        if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return Task.CompletedTask;
-        return RunCommand(command, slashCommand, null, null);
+        if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return;
+        await _log.SafeInvoke($"Failed to run command {command.Name}", async Task () => await RunCommand(command, slashCommand, null, null));
     }
 
     private static async Task RunCommand(Command command, SocketSlashCommand slashCommand, ICommandOption? option, SocketSlashCommandDataOption? slashOption)

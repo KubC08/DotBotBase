@@ -25,6 +25,7 @@ public class DBSQLiteTable<T> : DbTable<T> where T : new()
         await using SQLiteCommand cmd = _connection.CreateCommand();
 
         string valueIndexes = "";
+        string columnList = "";
         foreach (var column in Properties.GetColumns())
         {
             FieldInfo? field = Properties.GetField(column.Name);
@@ -32,13 +33,16 @@ public class DBSQLiteTable<T> : DbTable<T> where T : new()
             
             object? value = field.GetValue(data);
             if (value == null) continue;
+
+            if (columnList.Length > 0) columnList += ", ";
+            columnList += column.Name;
             
             if (valueIndexes.Length > 0) valueIndexes += ", ";
             valueIndexes += $"${column.Name}";
             cmd.Parameters.AddWithValue("$" + column.Name, value);
         }
         
-        cmd.CommandText = $"INSERT INTO {Name} ({SQLiteUtils.GetColumnList(Properties)}) VALUES ({valueIndexes})";
+        cmd.CommandText = $"INSERT INTO {Name} ({columnList}) VALUES ({valueIndexes})";
         await cmd.ExecuteNonQueryAsync();
     }
 
@@ -117,7 +121,7 @@ public class DBSQLiteTable<T> : DbTable<T> where T : new()
         List<object> result = new List<object>();
         await using (var reader = await cmd.ExecuteReaderAsync())
         {
-            while (reader.Read())
+            while (await reader.ReadAsync())
             {
                 T entry = new T();
 
@@ -130,6 +134,7 @@ public class DBSQLiteTable<T> : DbTable<T> where T : new()
                     
                     field.SetValue(entry, reader.GetValue(i));
                 }
+                result.Add(entry);
             }
         }
 

@@ -9,31 +9,38 @@ public static class ModuleService
     private static readonly Logger _log = new Logger("Module Service", DotBotInfo.Name);
 
     private static readonly Dictionary<string, string> _libraries = new Dictionary<string, string>();
-    //private static readonly Dictionary<Assembly, BotModule> _modules = new Dictionary<Assembly, BotModule>();
     private static readonly List<BotModule> _modules = new List<BotModule>();
     public static BotModule[] Modules => _modules.ToArray();
 
     public static void SetupLibraries(string targetPath)
     {
-        foreach (var libraryFile in Directory.GetFiles(targetPath, "*.dll"))
+        foreach (var libraryFile in Directory.GetFiles(targetPath, "*.dll", SearchOption.AllDirectories))
         {
-            AssemblyDefinition assemblyDef = AssemblyDefinition.ReadAssembly(libraryFile);
-            _libraries.Add(assemblyDef.Name.FullName, libraryFile);
+            if (!BaseUtils.IsManagedAssembly(libraryFile))
+            {
+                _log.LogDebug($"The assembly {libraryFile} is not a managed assembly! Skipping...");
+                continue;
+            }
+
+            _log.SafeInvoke($"Could not load {libraryFile}, attempting to load as native", () =>
+            {
+                AssemblyDefinition assemblyDef = AssemblyDefinition.ReadAssembly(libraryFile);
+                _libraries.Add(assemblyDef.Name.FullName, libraryFile);
+            });
         }
     }
     
     public static Assembly? ResolveLibrary(object? sender, ResolveEventArgs args)
     {
         if (!_libraries.TryGetValue(args.Name, out var libraryPath)) return null;
-        Assembly result = Assembly.LoadFile(libraryPath);
-        return result;
+        return Assembly.LoadFile(libraryPath);
     }
     
     public static void LoadModules(string targetPath)
     {
         Dictionary<string, ModuleInfo> modules = new Dictionary<string, ModuleInfo>();
         Dictionary<string, ModuleInfo> extensions = new Dictionary<string, ModuleInfo>();
-        foreach (var moduleFile in Directory.GetFiles(targetPath, "*.dll"))
+        foreach (var moduleFile in Directory.GetFiles(targetPath, "*.dll", SearchOption.AllDirectories))
         {
             ModuleDefinition moduleDef = ModuleDefinition.ReadModule(moduleFile);
             foreach (var typeDef in moduleDef.Types)
@@ -52,6 +59,9 @@ public static class ModuleService
                 foreach (var dependencyAttribute in dependencyAttributes)
                     if (dependencyAttribute.HasConstructorArguments && dependencyAttribute.ConstructorArguments.Count == 1)
                         dependencies.Add((string)dependencyAttribute.ConstructorArguments[0].Value);
+                foreach (var assemblyDependency in moduleDef.AssemblyReferences)
+                    if (dependencies.Contains(assemblyDependency.FullName))
+                        dependencies.Add(assemblyDependency.FullName);
 
                 ModuleInfo info = new ModuleInfo()
                 {
@@ -124,7 +134,8 @@ public static class ModuleService
             {
                 entry.IsRunning = true;
                 entry.Start();
-                entry.StartAsync().Wait();
+                Task task = entry.StartAsync();
+                if (entry.ShouldWait) task.Wait();
                 _log.LogInfo($"Successfully start {entry.Name}");
             });
         }
@@ -142,7 +153,8 @@ public static class ModuleService
             {
                 entry.IsRunning = false;
                 entry.Shutdown();
-                entry.ShutdownAsync().Wait();
+                Task task = entry.ShutdownAsync();
+                if (entry.ShouldWait) task.Wait();
                 _log.LogInfo($"Successfully shut down {entry.Name}");
             });
         }

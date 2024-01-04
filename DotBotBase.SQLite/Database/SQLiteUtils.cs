@@ -29,7 +29,9 @@ public static class SQLiteUtils
 
             if (columns.Length > 0) columns += ", ";
             columns += $"{column.Name} {GetSQLType(field.FieldType)}";
+            if (column.PrimaryKey) columns += " PRIMARY KEY";
             if (column.NotNullable) columns += " NOT NULL";
+            if (column.IsUnique) columns += " UNIQUE";
         }
         return columns;
     }
