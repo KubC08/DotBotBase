@@ -56,7 +56,8 @@ public static class BaseUtils
         }
         return false;
     }
-    
+
+    // https://stackoverflow.com/a/15608028
     public static bool IsManagedAssembly(string fileName)
     {
         using (Stream fileStream = new FileStream(fileName, FileMode.Open, FileAccess.Read))
