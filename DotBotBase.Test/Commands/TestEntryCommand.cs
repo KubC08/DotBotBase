@@ -10,6 +10,8 @@ public class TestEntryCommand : Command
     public override ICommandOption[] Options => new ICommandOption[]
     {
         new AddTestEntry(),
-        new GetTestEntry()
+        new GetTestEntry(),
+        new DeleteTestEntry(),
+        new UpdateTestEntry()
     };
 }
