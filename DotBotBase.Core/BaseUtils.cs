@@ -3,7 +3,7 @@ using Mono.Cecil;
 
 namespace DotBotBase.Core;
 
-public static class BaseUtils
+internal static class BaseUtils
 {
     public static async Task SafeInvoke(this Logger log, string error, Func<Task> func)
     {

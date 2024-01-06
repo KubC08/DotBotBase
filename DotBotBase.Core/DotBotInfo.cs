@@ -1,6 +1,6 @@
 namespace DotBotBase.Core;
 
-public static class DotBotInfo
+internal static class DotBotInfo
 {
     public const string Name = "DotBot Base";
 }

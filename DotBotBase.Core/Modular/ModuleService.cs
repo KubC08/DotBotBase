@@ -4,14 +4,24 @@ using Mono.Cecil;
 
 namespace DotBotBase.Core.Modular;
 
+/// <summary>
+/// The service that controls loading/unloading modules.
+/// </summary>
 public static class ModuleService
 {
     private static readonly Logger _log = new Logger("Module Service", DotBotInfo.Name);
 
     private static readonly Dictionary<string, string> _libraries = new Dictionary<string, string>();
     private static readonly List<BotModule> _modules = new List<BotModule>();
+    /// <summary>
+    /// All the loaded modules.
+    /// </summary>
     public static BotModule[] Modules => _modules.ToArray();
-
+    
+    /// <summary>
+    /// Setup and pre-load the libraries directory.
+    /// </summary>
+    /// <param name="targetPath">The path to target for pre-loading the libraries.</param>
     public static void SetupLibraries(string targetPath)
     {
         foreach (var libraryFile in Directory.GetFiles(targetPath, "*.dll", SearchOption.AllDirectories))
@@ -30,12 +40,19 @@ public static class ModuleService
         }
     }
     
+    /// <summary>
+    /// Event for resolving the custom libraries which were pre-loaded using the "SetupLibraries" function.
+    /// </summary>
     public static Assembly? ResolveLibrary(object? sender, ResolveEventArgs args)
     {
         if (!_libraries.TryGetValue(args.Name, out var libraryPath)) return null;
         return Assembly.LoadFile(libraryPath);
     }
     
+    /// <summary>
+    /// Load all the modules in the specified directory.
+    /// </summary>
+    /// <param name="targetPath">The directory to load the modules from.</param>
     public static void LoadModules(string targetPath)
     {
         Dictionary<string, ModuleInfo> modules = new Dictionary<string, ModuleInfo>();
@@ -98,7 +115,7 @@ public static class ModuleService
         sortedModules.Add(moduleInfo.GUID, moduleInfo);
     }
 
-    public static void LoadModule(string assemblyPath)
+    private static void LoadModule(string assemblyPath)
     {
         if (!File.Exists(assemblyPath)) return;
 
@@ -123,6 +140,9 @@ public static class ModuleService
         });
     }
 
+    /// <summary>
+    /// Starts all the modules that were loaded using the "LoadModules" function.
+    /// </summary>
     public static void StartModules()
     {
         _log.LogInfo("Starting all modules...");
@@ -142,6 +162,9 @@ public static class ModuleService
         _log.LogInfo("All modules started!");
     }
 
+    /// <summary>
+    /// Shuts down all currently loaded and running modules.
+    /// </summary>
     public static void ShutdownModules()
     {
         _log.LogInfo("Shutting down all modules...");

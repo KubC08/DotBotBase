@@ -1,5 +1,8 @@
 namespace DotBotBase.Core.Logging;
 
+/// <summary>
+/// The service responsible for all the logging done in the program.
+/// </summary>
 public static class LoggingService
 {
     private const ConsoleColor DebugColor = ConsoleColor.Gray;
@@ -7,11 +10,20 @@ public static class LoggingService
     private const ConsoleColor WarningColor = ConsoleColor.DarkYellow;
     private const ConsoleColor ErrorColor = ConsoleColor.Red;
 
+    /// <summary>
+    /// The "all" logging filter.
+    /// </summary>
     public const LogType All = LogType.Debug | LogType.Error | LogType.Info | LogType.Warning;
     
     public delegate void OnLogHandler(LogType type, string log, Exception? ex = null);
+    /// <summary>
+    /// Called when a log should be processed.
+    /// </summary>
     public static event OnLogHandler? OnLog;
     
+    /// <summary>
+    /// The standard or "default" logging filter.
+    /// </summary>
     public static LogType AllowedTypes = LogType.Error | LogType.Warning | LogType.Info;
 
     internal static void Log(LogType type, string log, Exception? ex = null)
