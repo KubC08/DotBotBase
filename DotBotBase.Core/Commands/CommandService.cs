@@ -4,13 +4,23 @@ using DotBotBase.Core.Logging;
 
 namespace DotBotBase.Core.Commands;
 
+/// <summary>
+/// The service responsible for handling all command executions and generating.
+/// </summary>
 public static class CommandService
 {
     private static readonly Logger _log = new Logger("Command Service", DotBotInfo.Name);
 
     private static readonly Dictionary<string, Command> _commands = new Dictionary<string, Command>();
+    /// <summary>
+    /// The list of currently loaded and active commands.
+    /// </summary>
     public static Command[] Commands => _commands.Values.ToArray();
     
+    /// <summary>
+    /// Invoke a slash command, usually attached to an event that automatically calls the function when a user calls a command.
+    /// </summary>
+    /// <param name="slashCommand">The Discord.NET slash command instance.</param>
     public static async Task RunCommand(SocketSlashCommand slashCommand)
     {
         if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return;
@@ -50,6 +60,11 @@ public static class CommandService
         await command.Run(slashCommand, args);
     }
 
+    /// <summary>
+    /// Loads a command of a specific type into the service so it can be built and ran.
+    /// </summary>
+    /// <typeparam name="T">The command type that must extend "Command" abstract class.</typeparam>
+    /// <returns>The instance of the command of type "Command".</returns>
     public static Command? LoadCommand<T>() where T : Command, new()
     {
         _log.LogInfo($"Loading command of type {typeof(T).Name}...");
@@ -63,13 +78,18 @@ public static class CommandService
         return command;
     }
 
-    public static ICommandOption? GetOptionByName(ICommandOption[] options, string name)
+    private static ICommandOption? GetOptionByName(ICommandOption[] options, string name)
     {
         foreach (ICommandOption option in options)
             if (option.Name == name) return option;
         return null;
     }
     
+    /// <summary>
+    /// Build a specific "Command" instance to be usable with Discord.NET.
+    /// </summary>
+    /// <param name="command">The target command instance to build.</param>
+    /// <returns>The built output which can be loaded into Discord.NET.</returns>
     public static SlashCommandProperties Build(Command command)
     {
         _log.LogDebug($"Building command {command.Name}");

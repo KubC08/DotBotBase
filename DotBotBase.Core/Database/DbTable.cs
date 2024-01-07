@@ -1,6 +1,6 @@
 namespace DotBotBase.Core.Database;
 
-public abstract class DbTable<T> : IDbTable where T : new()
+public abstract class DbTable<T> where T : new()
 {
     public abstract string Name { get; }
 
