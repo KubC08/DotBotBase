@@ -48,12 +48,13 @@ public static class ModuleService
         if (!_libraries.TryGetValue(args.Name, out var libraryPath)) return null;
         return Assembly.LoadFile(libraryPath);
     }
-    
+
     /// <summary>
     /// Load all the modules in the specified directory.
     /// </summary>
+    /// <param name="client">The DotBot client to attach the the selected modules to.</param>
     /// <param name="targetPath">The directory to load the modules from.</param>
-    public static void LoadModules(string targetPath)
+    public static void LoadModules(DotBot client, string targetPath)
     {
         Dictionary<string, ModuleInfo> modules = new Dictionary<string, ModuleInfo>();
         Dictionary<string, ModuleInfo> extensions = new Dictionary<string, ModuleInfo>();
@@ -95,27 +96,27 @@ public static class ModuleService
 
         SortedDictionary<string, ModuleInfo> sortedModules = new SortedDictionary<string, ModuleInfo>();
         foreach (var entry in extensions)
-            LoadSorted(sortedModules, modules, entry.Value);
+            SortModules(sortedModules, modules, entry.Value);
         foreach (var entry in modules)
-            LoadSorted(sortedModules, modules, entry.Value);
+            SortModules(sortedModules, modules, entry.Value);
 
         foreach (var entry in sortedModules)
-            LoadModule(entry.Value.AssemblyPath);
+            LoadModule(client, entry.Value.AssemblyPath);
     }
 
-    private static void LoadSorted(SortedDictionary<string, ModuleInfo> sortedModules, Dictionary<string, ModuleInfo> modules, ModuleInfo moduleInfo)
+    private static void SortModules(SortedDictionary<string, ModuleInfo> sortedModules, Dictionary<string, ModuleInfo> modules, ModuleInfo moduleInfo)
     {
         if (sortedModules.ContainsKey(moduleInfo.GUID)) return;
         foreach (var dependency in moduleInfo.Dependencies)
         {
             if (!modules.TryGetValue(dependency, out var dependencyModule))
                 throw new MissingDependencyException(dependency);
-            LoadSorted(sortedModules, modules, dependencyModule);
+            SortModules(sortedModules, modules, dependencyModule);
         }
         sortedModules.Add(moduleInfo.GUID, moduleInfo);
     }
 
-    private static void LoadModule(string assemblyPath)
+    private static void LoadModule(DotBot client, string assemblyPath)
     {
         if (!File.Exists(assemblyPath)) return;
 
@@ -134,6 +135,7 @@ public static class ModuleService
             if (module == null) return;
 
             module.Log = new Logger(null, module.Name);
+            module.Client = client;
             
             _modules.Add(module);
             _log.LogInfo($"Successfully loaded {module.Name} v{module.Version} by {module.Author}");

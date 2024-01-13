@@ -1,5 +1,6 @@
 using Discord;
 using Discord.WebSocket;
+using DotBotBase.Core;
 using DotBotBase.Core.Commands;
 
 namespace DotBotBase.Test.Commands;
@@ -17,7 +18,7 @@ public class DeleteTestEntry : Command
         }
     };
 
-    public override async Task Run(SocketSlashCommand command, Dictionary<string, object> args)
+    public override async Task Run(DotBot client, SocketSlashCommand command, Dictionary<string, object> args)
     {
         if (TestModule.TestEntryTable == null) return;
         

@@ -1,3 +1,4 @@
+using Discord.WebSocket;
 using DotBotBase.Core.Commands;
 using DotBotBase.Core.Logging;
 
@@ -37,6 +38,11 @@ public abstract class BotModule
     /// The basic Logger attached to the Module
     /// </summary>
     public Logger? Log { get; internal set; }
+    
+    /// <summary>
+    /// The DotBot client instance that the module is attached to.
+    /// </summary>
+    public DotBot? Client { get; internal set; }
 
     /// <summary>
     /// A synchronous function called when the module is started.
@@ -63,13 +69,46 @@ public abstract class BotModule
     /// Adds a global slash command of the given generic type.
     /// </summary>
     /// <typeparam name="T">The command of type "Command".</typeparam>
-    /// <seealso cref="Command"/>
     /// <returns>The instance of the "Command" type specified in generic.</returns>
-    public T? AddCommand<T>() where T : Command, new()
+    public T? LoadGlobalCommand<T>() where T : Command, new()
     {
         if (!IsRunning) return null;
 
-        Command? command = CommandService.LoadCommand<T>();
+        Command? command = CommandService.LoadGlobalCommand<T>();
+        if (command == null) return null;
+        
+        _commands.Add(command);
+        return (T)command;
+    }
+
+    /// <summary>
+    /// Adds a guild slash command of the given generic type.
+    /// </summary>
+    /// <typeparam name="T">The command of type "Command".</typeparam>
+    /// <param name="guildId">The id of the guild you would like to add the command to.</param>
+    /// <returns>The instance of the "Command" type specified in generic.</returns>
+    public T? LoadGuildCommand<T>(ulong guildId) where T : Command, new()
+    {
+        if (!IsRunning) return null;
+
+        Command? command = CommandService.LoadGuildCommand<T>(guildId);
+        if (command == null) return null;
+        
+        _commands.Add(command);
+        return (T)command;
+    }
+    
+    /// <summary>
+    /// Adds a guild slash command of the given generic type.
+    /// </summary>
+    /// <typeparam name="T">The command of type "Command".</typeparam>
+    /// <param name="guild">The guild you would like to add the command to.</param>
+    /// <returns>The instance of the "Command" type specified in generic.</returns>
+    public T? LoadGuildCommand<T>(SocketGuild guild) where T : Command, new()
+    {
+        if (!IsRunning) return null;
+
+        Command? command = CommandService.LoadGuildCommand<T>(guild.Id);
         if (command == null) return null;
         
         _commands.Add(command);

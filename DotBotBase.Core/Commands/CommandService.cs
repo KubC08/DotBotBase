@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Discord;
 using Discord.WebSocket;
 using DotBotBase.Core.Logging;
@@ -14,10 +15,26 @@ public static class CommandService
     private static readonly Dictionary<ulong, Dictionary<string, Command>> _guildCommands =
         new Dictionary<ulong, Dictionary<string, Command>>();
     private static readonly Dictionary<string, Command> _globalCommands = new Dictionary<string, Command>();
+    
     /// <summary>
-    /// The list of currently loaded and active commands.
+    /// The list of currently loaded and active global commands.
     /// </summary>
-    public static Command[] Commands => _globalCommands.Values.ToArray();
+    public static IReadOnlyCollection<Command> GlobalCommands => _globalCommands.Values.ToArray();
+
+    /// <summary>
+    /// The list of currently loaded and active guild commands.
+    /// </summary>
+    public static IReadOnlyDictionary<ulong, IReadOnlyCollection<Command>> GuildCommands
+    {
+        get
+        {
+            Dictionary<ulong, IReadOnlyCollection<Command>> result =
+                new Dictionary<ulong, IReadOnlyCollection<Command>>();
+            foreach (var guildCommands in _guildCommands)
+                result.Add(guildCommands.Key, guildCommands.Value.Values.ToArray());
+            return new ReadOnlyDictionary<ulong, IReadOnlyCollection<Command>>(result);
+        }
+    }
 
     /// <summary>
     /// Invoke a slash command, usually attached to an event that automatically calls the function when a user calls a command.
@@ -26,7 +43,15 @@ public static class CommandService
     /// <param name="slashCommand">The Discord.NET slash command instance.</param>
     public static async Task RunCommand(DotBot client, SocketSlashCommand slashCommand)
     {
-        if (!_globalCommands.TryGetValue(slashCommand.Data.Name, out var command)) return;
+        Command? command = null;
+        if (slashCommand.GuildId != null)
+            if (_guildCommands.TryGetValue((ulong)slashCommand.GuildId, out var commands))
+                command = commands.GetValueOrDefault(slashCommand.Data.Name);
+        if (command == null)
+            if (!_globalCommands.TryGetValue(slashCommand.Data.Name, out command))
+                command = null;
+        if (command == null) return;
+        
         await _log.SafeInvoke($"Failed to run command {command.Name}", async Task () => await RunCommand(client, command, slashCommand, null, null));
     }
 
@@ -63,21 +88,53 @@ public static class CommandService
         await command.Run(client, slashCommand, args);
     }
 
+    private static Command? LoadCommand<T>() where T : Command, new()
+    {
+        T? command = null;
+        _log.SafeInvoke($"Failed to load command {typeof(T).Name}", () => command = new T());
+        
+        if (command?.Name == null || command.Description == null) return null;
+        return command;
+    }
+
     /// <summary>
-    /// Loads a command of a specific type into the service so it can be built and ran.
+    /// Loads a global command of a specific type into the service so it can be built and ran.
     /// </summary>
     /// <typeparam name="T">The command type that must extend "Command" abstract class.</typeparam>
     /// <returns>The instance of the command of type "Command".</returns>
-    public static Command? LoadCommand<T>() where T : Command, new()
+    public static Command? LoadGlobalCommand<T>() where T : Command, new()
     {
-        _log.LogInfo($"Loading command of type {typeof(T).Name}...");
+        _log.LogInfo($"Loading global command of type {typeof(T).Name}...");
 
-        T? command = null;
-        _log.SafeInvoke($"Failed to load command {typeof(T).Name}", () => command = new T());
-        if (command == null || command.Name == null || command.Description == null) return null;
+        Command? command = LoadCommand<T>();
+        if (command?.Name == null) return null;
         
         _globalCommands.Add(command.Name, command);
-        _log.LogInfo($"Successfully loaded command {command.Name}");
+        _log.LogInfo($"Successfully loaded global command {command.Name}");
+        return command;
+    }
+
+    /// <summary>
+    /// Loads a global command of a specific type into the service so it can be built and ran.
+    /// </summary>
+    /// <param name="guildId">The guild id to load the command into.</param>
+    /// <typeparam name="T">The command type that must extend "Command" abstract class.</typeparam>
+    /// <returns>The instance of the command of type "Command".</returns>
+    public static Command? LoadGuildCommand<T>(ulong guildId) where T : Command, new()
+    {
+        _log.LogInfo($"Loading guild command of type {typeof(T).Name}...");
+
+        Command? command = LoadCommand<T>();
+        if (command?.Name == null) return null;
+
+        if (!_guildCommands.TryGetValue(guildId, out var guildCommands))
+        {
+            guildCommands = new Dictionary<string, Command>();
+            _guildCommands.Add(guildId, guildCommands);
+        }
+        guildCommands.Add(command.Name, command);
+        
+        _log.LogInfo($"Successfully loaded guild command {command.Name}");
         return command;
     }
 

@@ -1,5 +1,6 @@
 using Discord;
 using Discord.WebSocket;
+using DotBotBase.Core;
 using DotBotBase.Core.Commands;
 using DotBotBase.Test.Database;
 
@@ -18,7 +19,7 @@ public class GetTestEntry : Command
         },
     };
 
-    public override async Task Run(SocketSlashCommand command, Dictionary<string, object> args)
+    public override async Task Run(DotBot client, SocketSlashCommand command, Dictionary<string, object> args)
     {
         if (TestModule.TestEntryTable == null) return;
         

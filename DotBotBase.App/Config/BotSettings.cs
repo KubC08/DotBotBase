@@ -12,9 +12,12 @@ public class BotSettings : ISettings
     public bool IsSharded { get; set; }
     public bool ShowDebugLogs { get; set; }
     
+    public bool AlwaysRebuildCommands { get; set; }
+    public bool ModifyExistingCommands { get; set; }
+    
     public string? DatabaseHost { get; set; }
     
-    public Dictionary<string, bool> ActiveModules { get; set; }
+    //public Dictionary<string, bool> ActiveModules { get; set; }
     
     public void LoadDefaults()
     {
@@ -22,9 +25,12 @@ public class BotSettings : ISettings
         AutoReconnect = true;
         IsSharded = false;
         ShowDebugLogs = false;
+
+        AlwaysRebuildCommands = false;
+        ModifyExistingCommands = true;
         
         DatabaseHost = "";
 
-        ActiveModules = new Dictionary<string, bool>();
+        //ActiveModules = new Dictionary<string, bool>();
     }
 }

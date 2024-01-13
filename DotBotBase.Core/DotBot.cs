@@ -11,16 +11,19 @@ namespace DotBotBase.Core;
 /// </summary>
 public class DotBot : IDisposable
 {
-    internal const string Name = "DotBot Base";
+    internal const string Name = "DotBot Core";
+    
+    public event Func<DiscordSocketClient, Task>? OnClientReady;
+    public event Func<DiscordSocketClient, Task>? OnClientConnect;
+    public event Func<DiscordSocketClient, Exception, Task>? OnClientDisconnect;
+    public event Func<LogMessage, Task>? OnLog;
+    public event Func<SocketSlashCommand, Task>? OnSlashCommandExecute;
+    public event Func<SocketGuild, Task>? OnGuildReady;
 
     /// <summary>
     /// The Discord bot's token.
     /// </summary>
     public string Token { get; private set; }
-    /// <summary>
-    /// Should the bot automatically reconnect to Discord if it is disconnected.
-    /// </summary>
-    public bool AutoReconnect { get; set; }
     /// <summary>
     /// Does the bot have sharding enabled.
     /// </summary>
@@ -48,14 +51,51 @@ public class DotBot : IDisposable
     public DotBot(string token, bool isSharded)
     {
         Token = token;
-        AutoReconnect = false;
         IsSharded = isSharded;
 
         if (isSharded) ShardedClient = new DiscordShardedClient();
         else SocketClient = new DiscordSocketClient();
+
+        if (Client != null)
+        {
+            Client.Log += message => OnLog?.Invoke(message);
+            Client.SlashCommandExecuted += command => OnSlashCommandExecute?.Invoke(command);
+            Client.JoinedGuild += guild => OnGuildReady?.Invoke(guild);
+
+            if (SocketClient != null)
+            {
+                SocketClient.Ready += () => OnClientReady?.Invoke(SocketClient);
+                SocketClient.Connected += () => OnClientConnect?.Invoke(SocketClient);
+                SocketClient.Disconnected += exception => OnClientDisconnect?.Invoke(SocketClient, exception);
+            }
+            
+            if (ShardedClient != null)
+            {
+                ShardedClient.ShardReady += client => OnClientReady?.Invoke(client);
+                ShardedClient.ShardConnected += client => OnClientConnect?.Invoke(client);
+                ShardedClient.ShardDisconnected += (exception, client) => OnClientDisconnect?.Invoke(client, exception);
+            }
+
+            OnClientReady += async client =>
+            {
+                foreach (SocketGuild guild in client.Guilds)
+                    await OnGuildReady?.Invoke(guild)!;
+            };
+        }
     }
     public void Dispose() =>
         Client?.Dispose();
+    
+    /// <summary>
+    /// Starts the bot.
+    /// </summary>
+    public async Task Run()
+    {
+        if (Client == null) return;
+
+        await Client.LoginAsync(TokenType.Bot, Token);
+        await Client.StartAsync();
+    }
     
     /// <summary>
     /// Adds Discord slash command to all the guilds.
@@ -133,16 +173,5 @@ public class DotBot : IDisposable
 
         SlashCommandProperties properties = CommandService.Build(command);
         return await Client.Rest.CreateGuildCommand(properties, guild.Id);
-    }
-
-    /// <summary>
-    /// Starts the bot.
-    /// </summary>
-    public async Task Run()
-    {
-        if (Client == null) return;
-
-        await Client.LoginAsync(TokenType.Bot, Token);
-        await Client.StartAsync();
     }
 }
