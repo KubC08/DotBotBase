@@ -8,7 +8,7 @@ namespace DotBotBase.Core.Config;
 /// </summary>
 public static class ConfigService
 {
-    private static readonly Logger _log = new Logger("Config Service", DotBotInfo.Name);
+    private static readonly Logger _log = new Logger("Config Service", DotBot.Name);
 
     /// <summary>
     /// If set to "true" the configuration service is setup and can be used. To setup use the "Setup" function.

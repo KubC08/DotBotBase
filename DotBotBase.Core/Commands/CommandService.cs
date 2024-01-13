@@ -9,25 +9,28 @@ namespace DotBotBase.Core.Commands;
 /// </summary>
 public static class CommandService
 {
-    private static readonly Logger _log = new Logger("Command Service", DotBotInfo.Name);
+    private static readonly Logger _log = new Logger("Command Service", DotBot.Name);
 
-    private static readonly Dictionary<string, Command> _commands = new Dictionary<string, Command>();
+    private static readonly Dictionary<ulong, Dictionary<string, Command>> _guildCommands =
+        new Dictionary<ulong, Dictionary<string, Command>>();
+    private static readonly Dictionary<string, Command> _globalCommands = new Dictionary<string, Command>();
     /// <summary>
     /// The list of currently loaded and active commands.
     /// </summary>
-    public static Command[] Commands => _commands.Values.ToArray();
-    
+    public static Command[] Commands => _globalCommands.Values.ToArray();
+
     /// <summary>
     /// Invoke a slash command, usually attached to an event that automatically calls the function when a user calls a command.
     /// </summary>
+    /// <param name="client">The DotBot client that was used to execute the command.</param>
     /// <param name="slashCommand">The Discord.NET slash command instance.</param>
-    public static async Task RunCommand(SocketSlashCommand slashCommand)
+    public static async Task RunCommand(DotBot client, SocketSlashCommand slashCommand)
     {
-        if (!_commands.TryGetValue(slashCommand.Data.Name, out var command)) return;
-        await _log.SafeInvoke($"Failed to run command {command.Name}", async Task () => await RunCommand(command, slashCommand, null, null));
+        if (!_globalCommands.TryGetValue(slashCommand.Data.Name, out var command)) return;
+        await _log.SafeInvoke($"Failed to run command {command.Name}", async Task () => await RunCommand(client, command, slashCommand, null, null));
     }
 
-    private static async Task RunCommand(Command command, SocketSlashCommand slashCommand, ICommandOption? option, SocketSlashCommandDataOption? slashOption)
+    private static async Task RunCommand(DotBot client, Command command, SocketSlashCommand slashCommand, ICommandOption? option, SocketSlashCommandDataOption? slashOption)
     {
         ICommandOption[] commandOptions = option?.Options ?? command.Options;
         var slashOptions = slashOption?.Options ?? slashCommand.Data.Options;
@@ -43,12 +46,12 @@ public static class CommandService
 
                 if (subOption.Type == ApplicationCommandOptionType.SubCommand)
                 {
-                    await RunCommand((Command)subOption, slashCommand, subOption, subSlashOption);
+                    await RunCommand(client, (Command)subOption, slashCommand, subOption, subSlashOption);
                     return;
                 }
                 if (subOption.Type == ApplicationCommandOptionType.SubCommandGroup)
                 {
-                    await RunCommand(command, slashCommand, subOption, subSlashOption);
+                    await RunCommand(client, command, slashCommand, subOption, subSlashOption);
                     return;
                 }
                 
@@ -57,7 +60,7 @@ public static class CommandService
         }
         
         _log.LogDebug($"Running command {command.Name}");
-        await command.Run(slashCommand, args);
+        await command.Run(client, slashCommand, args);
     }
 
     /// <summary>
@@ -73,7 +76,7 @@ public static class CommandService
         _log.SafeInvoke($"Failed to load command {typeof(T).Name}", () => command = new T());
         if (command == null || command.Name == null || command.Description == null) return null;
         
-        _commands.Add(command.Name, command);
+        _globalCommands.Add(command.Name, command);
         _log.LogInfo($"Successfully loaded command {command.Name}");
         return command;
     }

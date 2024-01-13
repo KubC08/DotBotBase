@@ -9,7 +9,7 @@ namespace DotBotBase.Core.Modular;
 /// </summary>
 public static class ModuleService
 {
-    private static readonly Logger _log = new Logger("Module Service", DotBotInfo.Name);
+    private static readonly Logger _log = new Logger("Module Service", DotBot.Name);
 
     private static readonly Dictionary<string, string> _libraries = new Dictionary<string, string>();
     private static readonly List<BotModule> _modules = new List<BotModule>();

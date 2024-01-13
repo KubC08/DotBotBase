@@ -7,7 +7,7 @@ namespace DotBotBase.Core.Database;
 /// </summary>
 public static class DatabaseService
 {
-    private static readonly Logger _log = new Logger("Database Service", DotBotInfo.Name);
+    private static readonly Logger _log = new Logger("Database Service", DotBot.Name);
 
     private static Type? _connectionHandler;
     private static string? _host;

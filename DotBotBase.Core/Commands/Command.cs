@@ -80,8 +80,9 @@ public abstract class Command : ICommandOption
     /// Execute when the command is called/executed by a user.
     /// Do note that this is only executed at the highest level such as a sub-command if present.
     /// </summary>
+    /// <param name="client">The DotBot client that was used to execute the command.</param>
     /// <param name="command">The Discord.NET slash command that was executed.</param>
     /// <param name="args">The arguments/options passed to the command in the format of (key, value).</param>
     /// <returns>The Task for asynchronous execution.</returns>
-    public virtual Task Run(SocketSlashCommand command, Dictionary<string, object> args) => Task.CompletedTask;
+    public virtual Task Run(DotBot client, SocketSlashCommand command, Dictionary<string, object> args) => Task.CompletedTask;
 }

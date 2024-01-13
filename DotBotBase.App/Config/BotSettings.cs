@@ -9,12 +9,22 @@ public class BotSettings : ISettings
     
     public string? Token { get; set; }
     public bool AutoReconnect { get; set; }
+    public bool IsSharded { get; set; }
+    public bool ShowDebugLogs { get; set; }
+    
     public string? DatabaseHost { get; set; }
+    
+    public Dictionary<string, bool> ActiveModules { get; set; }
     
     public void LoadDefaults()
     {
         Token = "";
         AutoReconnect = true;
+        IsSharded = false;
+        ShowDebugLogs = false;
+        
         DatabaseHost = "";
+
+        ActiveModules = new Dictionary<string, bool>();
     }
 }
