@@ -20,43 +20,34 @@ public class DotBot : IDisposable
     public event Func<SocketSlashCommand, Task>? OnSlashCommandExecute;
     public event Func<SocketGuild, Task>? OnGuildReady;
 
-    public event Func<Task> OnBotLoaded;
-
     /// <summary>
     /// The Discord bot's token.
     /// </summary>
     public string Token { get; private set; }
-    /// <summary>
-    /// Does the bot have sharding enabled.
-    /// </summary>
-    public bool IsSharded { get; private set; }
+    // public bool IsSharded { get; private set; }
 
     /// <summary>
     /// The Discord socket client (null if "IsSharded" is enabled).
     /// </summary>
     public DiscordSocketClient? SocketClient { get; private set; }
-    /// <summary>
-    /// The Discord sharded client (null if "IsSharded" is disabled).
-    /// </summary>
-    public DiscordShardedClient? ShardedClient { get; private set; }
+    //public DiscordShardedClient? ShardedClient { get; private set; }
 
     /// <summary>
     /// Returns either the sharded or socket client based on "IsSharded". If null then something went wrong.
     /// </summary>
-    public BaseSocketClient? Client => (IsSharded ? ShardedClient : SocketClient);
+    public BaseSocketClient? Client => SocketClient;
 
     /// <summary>
     /// Create and initialize the bot framework, as well as the Discord client.
     /// </summary>
     /// <param name="token">The token to access the bot.</param>
-    /// <param name="isSharded">Is the bot sharded.</param>
-    public DotBot(string token, bool isSharded)
+    public DotBot(string token)
     {
         Token = token;
-        IsSharded = isSharded;
+        //IsSharded = isSharded;
 
-        if (isSharded) ShardedClient = new DiscordShardedClient();
-        else SocketClient = new DiscordSocketClient();
+        /*if (isSharded) ShardedClient = new DiscordShardedClient();
+        else SocketClient = new DiscordSocketClient();*/
 
         if (Client != null)
         {
@@ -71,22 +62,17 @@ public class DotBot : IDisposable
                 SocketClient.Disconnected += exception => OnClientDisconnect?.Invoke(SocketClient, exception);
             }
             
-            if (ShardedClient != null)
+            /*if (ShardedClient != null)
             {
                 ShardedClient.ShardReady += client => OnClientReady?.Invoke(client);
                 ShardedClient.ShardConnected += client => OnClientConnect?.Invoke(client);
                 ShardedClient.ShardDisconnected += (exception, client) => OnClientDisconnect?.Invoke(client, exception);
-            }
+            }*/
 
             OnClientReady += async client =>
             {
                 foreach (SocketGuild guild in client.Guilds)
                     await OnGuildReady?.Invoke(guild)!;
-                
-                if (SocketClient != null) OnBotLoaded?.Invoke();
-                else if (ShardedClient != null)
-                {
-                }
             };
         }
     }
@@ -144,10 +130,37 @@ public class DotBot : IDisposable
     /// <param name="guild">The guild to add the command to.</param>
     /// <param name="command">The Discord slash command to add.</param>
     /// <returns>The created guild command or null if failed to create.</returns>
-    public async Task<RestGuildCommand?> AddGuildCommand(SocketGuild guild, SlashCommandProperties command)
+    public Task<RestGuildCommand?> AddGuildCommand(SocketGuild guild, SlashCommandProperties command) =>
+        AddGuildCommand(guild.Id, command);
+
+    /// <summary>
+    /// Adds a Discord slash command to a specified guild.
+    /// </summary>
+    /// <param name="guild">The guild to add the command to.</param>
+    /// <param name="command">The Discord slash command to add.</param>
+    /// <returns>The created guild command or null if failed to create.</returns>
+    public Task<RestGuildCommand?> AddGuildCommand(SocketGuild guild, Command command) =>
+        AddGuildCommand(guild.Id, command);
+    
+    /// <summary>
+    /// Adds a Discord slash command to a specified guild.
+    /// </summary>
+    /// <param name="guildId">The guild id of the guild to add the command to.</param>
+    /// <param name="command">The Discord slash command to add.</param>
+    /// <returns>The created guild command or null if failed to create.</returns>
+    public Task<RestGuildCommand?> AddGuildCommand(ulong guildId, Command command) =>
+        AddGuildCommand(guildId, CommandService.Build(command));
+
+    /// <summary>
+    /// Adds a Discord slash command to a specified guild.
+    /// </summary>
+    /// <param name="guildId">The guild id of the guild to add the command to.</param>
+    /// <param name="command">The Discord slash command to add.</param>
+    /// <returns>The created guild command or null if failed to create.</returns>
+    public async Task<RestGuildCommand?> AddGuildCommand(ulong guildId, SlashCommandProperties command)
     {
         if (Client == null) return null;
-        return await Client.Rest.CreateGuildCommand(command, guild.Id);
+        return await Client.Rest.CreateGuildCommand(command, guildId);
     }
 
     /// <summary>
@@ -166,19 +179,5 @@ public class DotBot : IDisposable
         }
 
         return new ReadOnlyDictionary<ulong, IReadOnlyCollection<RestGuildCommand>>(guildCommands);
-    }
-
-    /// <summary>
-    /// Adds a Discord slash command to a specified guild.
-    /// </summary>
-    /// <param name="guild">The guild to add the command to.</param>
-    /// <param name="command">The Discord slash command to add.</param>
-    /// <returns>The created guild command or null if failed to create.</returns>
-    public async Task<RestGuildCommand?> AddGuildCommand(SocketGuild guild, Command command)
-    {
-        if (Client == null) return null;
-
-        SlashCommandProperties properties = CommandService.Build(command);
-        return await Client.Rest.CreateGuildCommand(properties, guild.Id);
     }
 }

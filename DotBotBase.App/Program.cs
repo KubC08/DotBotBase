@@ -12,11 +12,12 @@ const string name = "DotBot";
 Logger log = new Logger(null, name);
 Logger discordLog = new Logger("Discord", name);
 
-Dictionary<string, RestGuildCommand> globalDiscordCommands = new Dictionary<string, RestGuildCommand>();
+Dictionary<string, RestGlobalCommand> globalDiscordCommands = new Dictionary<string, RestGlobalCommand>();
 Dictionary<ulong, Dictionary<string, RestGuildCommand>> guildDiscordCommands = new Dictionary<ulong, Dictionary<string, RestGuildCommand>>();
 
+bool isReady = false;
 List<Command> preloadedGlobalCommands = new List<Command>();
-Dictionary<ulong, Command> preloadedGuildCommands = new Dictionary<ulong, Command>();
+Dictionary<ulong, List<Command>> preloadedGuildCommands = new Dictionary<ulong, List<Command>>();
 
 string configDirectory = Path.Join(Directory.GetCurrentDirectory(), "config");
 string modulesDirectory = Path.Join(Directory.GetCurrentDirectory(), "modules");
@@ -38,12 +39,57 @@ if (settings == null || string.IsNullOrEmpty(settings.Token)) return;
 if (settings.ShowDebugLogs) LoggingService.AllowedTypes = LoggingService.All;
 log.LogInfo("Successfully initialized configuration and settings!");
 
+bool shouldRebuildCommands = (envRebuildCommands != null && envRebuildCommands.ToLower() == "true") ||
+                             settings.AlwaysRebuildCommands;
+bool shouldModifyCommands = (envModifyCommands != null && envModifyCommands.ToLower() == "true") ||
+                            settings.ModifyExistingCommands;
+
 log.LogInfo("Initializing DotBot and Discord...");
-DotBot bot = new DotBot(settings.Token, settings.IsSharded);
+DotBot bot = new DotBot(settings.Token);
 log.LogInfo("Successfully initialized DotBot and Discord!");
 log.LogInfo("Initializing database system if present...");
 if (!string.IsNullOrEmpty(settings.DatabaseHost)) DatabaseService.LoadHost(settings.DatabaseHost);
 log.LogInfo("Successfully initialized database system!");
+
+CommandService.OnGlobalCommandLoad += async command =>
+{
+    if (command.Name == null) return;
+    if (!isReady)
+    {
+        preloadedGlobalCommands.Add(command);
+        return;
+    }
+
+    RestGlobalCommand? discordCommand = await bot?.AddGlobalCommand(command)!;
+    if (discordCommand == null) return;
+    
+    globalDiscordCommands.Add(command.Name, discordCommand);
+};
+
+CommandService.OnGuildCommandLoad += async (command, guildId) =>
+{
+    if (command.Name == null) return;
+    if (!isReady)
+    {
+        if (!preloadedGuildCommands.TryGetValue(guildId, out var commands))
+        {
+            commands = new List<Command>();
+            preloadedGuildCommands.Add(guildId, commands);
+        }
+        commands.Add(command);
+        return;
+    }
+
+    RestGuildCommand? discordCommand = await bot?.AddGuildCommand(guildId, command)!;
+    if (discordCommand == null) return;
+
+    if (!guildDiscordCommands.TryGetValue(guildId, out var guildCommands))
+    {
+        guildCommands = new Dictionary<string, RestGuildCommand>();
+        guildDiscordCommands.Add(guildId, guildCommands);
+    }
+    guildCommands.Add(command.Name, discordCommand);
+};
 
 log.LogInfo("Setting up modules and module service...");
 AppDomain.CurrentDomain.AssemblyResolve += ModuleService.ResolveLibrary;
@@ -82,7 +128,7 @@ bot.OnLog += message =>
 bot.OnClientDisconnect += async (client, exception) =>
 {
     log.LogDebug($"Client disconnected {client.ShardId}");
-    if (!settings.AutoReconnect || settings.IsSharded || bot.SocketClient == null) return;
+    if (!settings.AutoReconnect || bot.SocketClient == null) return;
     
     while (bot.SocketClient.ConnectionState != ConnectionState.Connected)
     {
@@ -100,22 +146,54 @@ bot.OnClientDisconnect += async (client, exception) =>
 
 bot.OnClientReady += async client =>
 {
-    /*if ((envRebuildCommands != null && envRebuildCommands.ToLower() == "true") || settings.AlwaysRebuildCommands)
+    isReady = true;
+    if (shouldRebuildCommands)
     {
         List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
-        foreach (Command command in CommandService.GlobalCommands)
+        foreach (var command in preloadedGlobalCommands)
             commands.Add(CommandService.Build(command));
         await client.BulkOverwriteGlobalApplicationCommandsAsync(commands.ToArray());
-        log.LogDebug($"Rebuilt {commands.Count} commands for client {client.ShardId}");
+        log.LogDebug($"Rebuilt {commands.Count} global commands for Discord");
     }
-
-    if ((envModifyCommands != null && envModifyCommands.ToLower() == "true") || settings.ModifyExistingCommands)
+    else if (shouldModifyCommands)
     {
-    }*/
+        var discordCommands = await bot.GetAllGlobalCommands();
+        if (discordCommands != null)
+            foreach (var command in discordCommands)
+                globalDiscordCommands.Add(command.Name, command);
+        
+        foreach (var command in preloadedGlobalCommands)
+        {
+        }
+    }
 };
 
 bot.OnGuildReady += async guild =>
 {
+    if (shouldRebuildCommands)
+    {
+        if (preloadedGuildCommands.TryGetValue(guild.Id, out var guildCommands))
+        {
+            List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
+            foreach (var command in guildCommands)
+                commands.Add(CommandService.Build(command));
+            await guild.BulkOverwriteApplicationCommandAsync(commands.ToArray());
+            log.LogDebug($"Rebuilt {commands.Count} guild commands for guild {guild.Id}");
+        }
+    }
+    else if (shouldModifyCommands)
+    {
+        if (!guildDiscordCommands.TryGetValue(guild.Id, out var guildCommands))
+        {
+            guildCommands = new Dictionary<string, RestGuildCommand>();
+            guildDiscordCommands.Add(guild.Id, guildCommands);
+        }
+
+        var discordCommands = await guild.GetAllCommands(bot);
+        if (discordCommands != null)
+            foreach (var command in discordCommands)
+                guildCommands.Add(command.Name, command);
+    }
 };
 
 bot.OnSlashCommandExecute += command => CommandService.RunCommand(bot, command);

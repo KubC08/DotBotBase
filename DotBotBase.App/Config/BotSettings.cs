@@ -9,7 +9,7 @@ public class BotSettings : ISettings
     
     public string? Token { get; set; }
     public bool AutoReconnect { get; set; }
-    public bool IsSharded { get; set; }
+    //public bool IsSharded { get; set; }
     public bool ShowDebugLogs { get; set; }
     
     public bool AlwaysRebuildCommands { get; set; }
@@ -23,7 +23,7 @@ public class BotSettings : ISettings
     {
         Token = "";
         AutoReconnect = true;
-        IsSharded = false;
+        //IsSharded = false;
         ShowDebugLogs = false;
 
         AlwaysRebuildCommands = false;
