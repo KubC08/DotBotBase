@@ -20,6 +20,8 @@ public class DotBot : IDisposable
     public event Func<SocketSlashCommand, Task>? OnSlashCommandExecute;
     public event Func<SocketGuild, Task>? OnGuildReady;
 
+    public event Func<Task> OnBotLoaded;
+
     /// <summary>
     /// The Discord bot's token.
     /// </summary>
@@ -80,6 +82,11 @@ public class DotBot : IDisposable
             {
                 foreach (SocketGuild guild in client.Guilds)
                     await OnGuildReady?.Invoke(guild)!;
+                
+                if (SocketClient != null) OnBotLoaded?.Invoke();
+                else if (ShardedClient != null)
+                {
+                }
             };
         }
     }

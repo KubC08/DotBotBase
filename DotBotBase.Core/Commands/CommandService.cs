@@ -15,6 +15,19 @@ public static class CommandService
     private static readonly Dictionary<ulong, Dictionary<string, Command>> _guildCommands =
         new Dictionary<ulong, Dictionary<string, Command>>();
     private static readonly Dictionary<string, Command> _globalCommands = new Dictionary<string, Command>();
+
+    /// <summary>
+    /// Runs when a global command is loaded into the service.
+    /// </summary>
+    public static event Action<Command> OnGlobalCommandLoad;
+    /// <summary>
+    /// Runs when a guild command is loaded into the service.
+    /// </summary>
+    public static event Action<Command, ulong> OnGuildCommandLoad;
+    /// <summary>
+    /// Runs when a command is executed.
+    /// </summary>
+    public static event Func<DotBot, SocketSlashCommand, Dictionary<string, object>, Task> OnCommandRun;
     
     /// <summary>
     /// The list of currently loaded and active global commands.
@@ -86,6 +99,7 @@ public static class CommandService
         
         _log.LogDebug($"Running command {command.Name}");
         await command.Run(client, slashCommand, args);
+        await _log.SafeInvoke($"Failed to execute OnCommand event", async () => await OnCommandRun?.Invoke(client, slashCommand, args)!);
     }
 
     private static Command? LoadCommand<T>() where T : Command, new()
@@ -110,6 +124,7 @@ public static class CommandService
         if (command?.Name == null) return null;
         
         _globalCommands.Add(command.Name, command);
+        _log.SafeInvoke($"Failed to execute global command load event for {command.Name}", () => OnGlobalCommandLoad?.Invoke(command));
         _log.LogInfo($"Successfully loaded global command {command.Name}");
         return command;
     }
@@ -133,7 +148,8 @@ public static class CommandService
             _guildCommands.Add(guildId, guildCommands);
         }
         guildCommands.Add(command.Name, command);
-        
+
+        _log.SafeInvoke($"Failed to execute guild command load event for {command.Name}", () => OnGuildCommandLoad?.Invoke(command, guildId));
         _log.LogInfo($"Successfully loaded guild command {command.Name}");
         return command;
     }

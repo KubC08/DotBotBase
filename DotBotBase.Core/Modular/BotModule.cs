@@ -72,7 +72,7 @@ public abstract class BotModule
     /// <returns>The instance of the "Command" type specified in generic.</returns>
     public T? LoadGlobalCommand<T>() where T : Command, new()
     {
-        if (!IsRunning) return null;
+        if (!IsRunning) throw new Exception("Module is not running!");
 
         Command? command = CommandService.LoadGlobalCommand<T>();
         if (command == null) return null;
@@ -89,7 +89,7 @@ public abstract class BotModule
     /// <returns>The instance of the "Command" type specified in generic.</returns>
     public T? LoadGuildCommand<T>(ulong guildId) where T : Command, new()
     {
-        if (!IsRunning) return null;
+        if (!IsRunning) throw new Exception("Module is not running!");
 
         Command? command = CommandService.LoadGuildCommand<T>(guildId);
         if (command == null) return null;
@@ -106,7 +106,7 @@ public abstract class BotModule
     /// <returns>The instance of the "Command" type specified in generic.</returns>
     public T? LoadGuildCommand<T>(SocketGuild guild) where T : Command, new()
     {
-        if (!IsRunning) return null;
+        if (!IsRunning) throw new Exception("Module is not running!");
 
         Command? command = CommandService.LoadGuildCommand<T>(guild.Id);
         if (command == null) return null;
