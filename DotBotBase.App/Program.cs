@@ -161,10 +161,17 @@ bot.OnClientReady += async client =>
         if (discordCommands != null)
             foreach (var command in discordCommands)
                 globalDiscordCommands.Add(command.Name, command);
-        
+
+        List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
         foreach (var command in preloadedGlobalCommands)
         {
+            if (command.Name == null) continue;
+            if (globalDiscordCommands.ContainsKey(command.Name)) continue;
+            
+            commands.Add(CommandService.Build(command));
         }
+        await client.BulkOverwriteGlobalApplicationCommandsAsync(commands.ToArray());
+        log.LogDebug($"Built/Rebuilt {commands.Count} global commands for Discord");
     }
 };
 
@@ -193,44 +200,29 @@ bot.OnGuildReady += async guild =>
         if (discordCommands != null)
             foreach (var command in discordCommands)
                 guildCommands.Add(command.Name, command);
+
+        if (preloadedGuildCommands.TryGetValue(guild.Id, out var preloadedCommands))
+        {
+            List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
+            foreach (var command in preloadedCommands)
+            {
+                if (command.Name == null) continue;
+                if (guildCommands.ContainsKey(command.Name)) continue;
+                
+                commands.Add(CommandService.Build(command));
+            }
+            await guild.BulkOverwriteApplicationCommandAsync(commands.ToArray());
+            log.LogDebug($"Built/Rebuilt {commands.Count} guild commands for guild {guild.Id}");
+        }
     }
 };
 
 bot.OnSlashCommandExecute += command => CommandService.RunCommand(bot, command);
 
-/*string configDirectory = Path.Join(Directory.GetCurrentDirectory(), "config");
-string modulesDirectory = Path.Join(Directory.GetCurrentDirectory(), "modules");
-string librariesDirectory = Path.Join(Directory.GetCurrentDirectory(), "libraries");
-
-if (!Directory.Exists(configDirectory)) Directory.CreateDirectory(configDirectory);
-if (!Directory.Exists(modulesDirectory)) Directory.CreateDirectory(modulesDirectory);
-if (!Directory.Exists(librariesDirectory)) Directory.CreateDirectory(librariesDirectory);
-
-LoggingService.AllowedTypes = LoggingService.All;
-
-ConfigService.Setup(configDirectory);
-BotSettings? settings = ConfigService.GetOrSetConfig<BotSettings>("settings");
-if (settings == null || string.IsNullOrEmpty(settings.Token)) return;
-
-DotBot bot = new DotBot(settings);
-if (!string.IsNullOrEmpty(settings.DatabaseHost)) DatabaseService.LoadHost(settings.DatabaseHost);
-
-AppDomain.CurrentDomain.AssemblyResolve += ModuleService.ResolveLibrary;
-ModuleService.SetupLibraries(librariesDirectory);
-ModuleService.LoadModules(modulesDirectory);
-
-bot.OnClientReady += async () =>
-{
-    bot.Client.BulkOverwriteGlobalApplicationCommandsAsync(Array.Empty<ApplicationCommandProperties>());
-    ModuleService.StartModules();
-    foreach (Command command in CommandService.Commands)
-        await bot.AddCommand(CommandService.Build(command));
-};
-bot.OnClientStop += ModuleService.ShutdownModules;
-bot.OnCommand += CommandService.RunCommand;
-
+log.LogInfo("Running bot...");
 Task running = bot.Run();
 running.Wait();
 Console.ReadLine();
 
-bot.Dispose();*/
+ModuleService.ShutdownModules();
+bot.Dispose();
