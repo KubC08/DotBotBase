@@ -75,6 +75,7 @@ public class DBSQLiteTable<T> : DbTable<T> where T : new()
         }
 
         cmd.CommandText = $"UPDATE {Name} SET {sets} WHERE {where}";
+        await cmd.ExecuteNonQueryAsync();
     }
 
     public override async Task Delete(Dictionary<string, object> filter)

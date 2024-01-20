@@ -46,20 +46,21 @@ public class DotBot : IDisposable
         Token = token;
         //IsSharded = isSharded;
 
+        SocketClient = new DiscordSocketClient();
         /*if (isSharded) ShardedClient = new DiscordShardedClient();
         else SocketClient = new DiscordSocketClient();*/
 
         if (Client != null)
         {
-            Client.Log += message => OnLog?.Invoke(message);
-            Client.SlashCommandExecuted += command => OnSlashCommandExecute?.Invoke(command);
-            Client.JoinedGuild += guild => OnGuildReady?.Invoke(guild);
+            Client.Log += message => OnLog?.Invoke(message) ?? Task.CompletedTask;
+            Client.SlashCommandExecuted += command => OnSlashCommandExecute?.Invoke(command) ?? Task.CompletedTask;
+            Client.JoinedGuild += guild => OnGuildReady?.Invoke(guild) ?? Task.CompletedTask;
 
             if (SocketClient != null)
             {
-                SocketClient.Ready += () => OnClientReady?.Invoke(SocketClient);
-                SocketClient.Connected += () => OnClientConnect?.Invoke(SocketClient);
-                SocketClient.Disconnected += exception => OnClientDisconnect?.Invoke(SocketClient, exception);
+                SocketClient.Ready += () => OnClientReady?.Invoke(SocketClient) ?? Task.CompletedTask;
+                SocketClient.Connected += () => OnClientConnect?.Invoke(SocketClient) ?? Task.CompletedTask;
+                SocketClient.Disconnected += exception => OnClientDisconnect?.Invoke(SocketClient, exception) ?? Task.CompletedTask;
             }
             
             /*if (ShardedClient != null)
@@ -72,7 +73,7 @@ public class DotBot : IDisposable
             OnClientReady += async client =>
             {
                 foreach (SocketGuild guild in client.Guilds)
-                    await OnGuildReady?.Invoke(guild)!;
+                    if (OnGuildReady != null) await OnGuildReady.Invoke(guild);
             };
         }
     }

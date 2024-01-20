@@ -63,7 +63,7 @@ CommandService.OnGlobalCommandLoad += async command =>
     RestGlobalCommand? discordCommand = await bot?.AddGlobalCommand(command)!;
     if (discordCommand == null) return;
     
-    globalDiscordCommands.Add(command.Name, discordCommand);
+    if (!globalDiscordCommands.ContainsKey(command.Name)) globalDiscordCommands.Add(command.Name, discordCommand);
 };
 
 CommandService.OnGuildCommandLoad += async (command, guildId) =>
@@ -88,7 +88,7 @@ CommandService.OnGuildCommandLoad += async (command, guildId) =>
         guildCommands = new Dictionary<string, RestGuildCommand>();
         guildDiscordCommands.Add(guildId, guildCommands);
     }
-    guildCommands.Add(command.Name, discordCommand);
+    guildCommands.TryAdd(command.Name, discordCommand);
 };
 
 log.LogInfo("Setting up modules and module service...");
@@ -147,31 +147,38 @@ bot.OnClientDisconnect += async (client, exception) =>
 bot.OnClientReady += async client =>
 {
     isReady = true;
-    if (shouldRebuildCommands)
+    try
     {
-        List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
-        foreach (var command in preloadedGlobalCommands)
-            commands.Add(CommandService.Build(command));
-        await client.BulkOverwriteGlobalApplicationCommandsAsync(commands.ToArray());
-        log.LogDebug($"Rebuilt {commands.Count} global commands for Discord");
-    }
-    else if (shouldModifyCommands)
-    {
-        var discordCommands = await bot.GetAllGlobalCommands();
-        if (discordCommands != null)
-            foreach (var command in discordCommands)
-                globalDiscordCommands.Add(command.Name, command);
-
-        List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
-        foreach (var command in preloadedGlobalCommands)
+        ModuleService.StartModules();
+    
+        if (shouldRebuildCommands)
         {
-            if (command.Name == null) continue;
-            if (globalDiscordCommands.ContainsKey(command.Name)) continue;
-            
-            commands.Add(CommandService.Build(command));
+            List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
+            foreach (var command in preloadedGlobalCommands)
+                commands.Add(CommandService.Build(command));
+            await client.BulkOverwriteGlobalApplicationCommandsAsync(commands.ToArray());
+            log.LogDebug($"Rebuilt {commands.Count} global commands for Discord");
         }
-        await client.BulkOverwriteGlobalApplicationCommandsAsync(commands.ToArray());
-        log.LogDebug($"Built/Rebuilt {commands.Count} global commands for Discord");
+        else if (shouldModifyCommands)
+        {
+            var discordCommands = await bot.GetAllGlobalCommands();
+            if (discordCommands != null)
+                foreach (var command in discordCommands)
+                    globalDiscordCommands.TryAdd(command.Name, command);
+        
+            foreach (var command in preloadedGlobalCommands)
+            {
+                if (command.Name == null) continue;
+                if (globalDiscordCommands.ContainsKey(command.Name)) continue;
+
+                bot.AddGlobalCommand(command);
+                log.LogDebug($"Added global command {command.Name} to Discord");
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        log.LogError("Error occured during OnClientReady", ex);
     }
 };
 
@@ -199,20 +206,18 @@ bot.OnGuildReady += async guild =>
         var discordCommands = await guild.GetAllCommands(bot);
         if (discordCommands != null)
             foreach (var command in discordCommands)
-                guildCommands.Add(command.Name, command);
+                guildCommands.TryAdd(command.Name, command);
 
         if (preloadedGuildCommands.TryGetValue(guild.Id, out var preloadedCommands))
         {
-            List<ApplicationCommandProperties> commands = new List<ApplicationCommandProperties>();
             foreach (var command in preloadedCommands)
             {
                 if (command.Name == null) continue;
                 if (guildCommands.ContainsKey(command.Name)) continue;
-                
-                commands.Add(CommandService.Build(command));
+
+                bot.AddGuildCommand(guild, command);
+                log.LogDebug($"Added guild command {command.Name} to guild {guild.Id}");
             }
-            await guild.BulkOverwriteApplicationCommandAsync(commands.ToArray());
-            log.LogDebug($"Built/Rebuilt {commands.Count} guild commands for guild {guild.Id}");
         }
     }
 };

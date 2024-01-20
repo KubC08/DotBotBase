@@ -60,6 +60,12 @@ public static class ModuleService
         Dictionary<string, ModuleInfo> extensions = new Dictionary<string, ModuleInfo>();
         foreach (var moduleFile in Directory.GetFiles(targetPath, "*.dll", SearchOption.AllDirectories))
         {
+            if (!BaseUtils.IsManagedAssembly(moduleFile))
+            {
+                _log.LogDebug($"The assembly {moduleFile} is not a managed assembly! Skipping...");
+                continue;
+            }
+            
             ModuleDefinition moduleDef = ModuleDefinition.ReadModule(moduleFile);
             foreach (var typeDef in moduleDef.Types)
             {

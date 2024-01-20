@@ -19,15 +19,15 @@ public static class CommandService
     /// <summary>
     /// Runs when a global command is loaded into the service.
     /// </summary>
-    public static event Action<Command> OnGlobalCommandLoad;
+    public static event Action<Command>? OnGlobalCommandLoad;
     /// <summary>
     /// Runs when a guild command is loaded into the service.
     /// </summary>
-    public static event Action<Command, ulong> OnGuildCommandLoad;
+    public static event Action<Command, ulong>? OnGuildCommandLoad;
     /// <summary>
     /// Runs when a command is executed.
     /// </summary>
-    public static event Func<DotBot, SocketSlashCommand, Dictionary<string, object>, Task> OnCommandRun;
+    public static event Func<DotBot, SocketSlashCommand, Dictionary<string, object>, Task>? OnCommandRun;
     
     /// <summary>
     /// The list of currently loaded and active global commands.
@@ -99,7 +99,7 @@ public static class CommandService
         
         _log.LogDebug($"Running command {command.Name}");
         await command.Run(client, slashCommand, args);
-        await _log.SafeInvoke($"Failed to execute OnCommand event", async () => await OnCommandRun?.Invoke(client, slashCommand, args)!);
+        await _log.SafeInvoke($"Failed to execute OnCommand event", () => OnCommandRun?.Invoke(client, slashCommand, args) ?? Task.CompletedTask);
     }
 
     private static Command? LoadCommand<T>() where T : Command, new()
